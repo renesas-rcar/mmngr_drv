@@ -1,0 +1,4 @@
+This repository contains both MMNGR driver and MMNGRBUF (dmabuf support) driver.
+The drivers support both 32-bit and 64-bit MMNGR applications.
+
+The drivers are released under Dual MIT&GPLv2 licenses.
