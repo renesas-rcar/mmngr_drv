@@ -143,7 +143,6 @@ static void mmngr_dev_set_cma_area(struct device *dev, struct cma *cma);
 #ifdef MMNGR_SALVATORX
 	#define MM_OMXBUF_ADDR	(0x70000000UL)
 	#define MM_OMXBUF_SIZE	(256 * 1024 * 1024)
-	#define MM_OMXBUF_MXI_ADDR	(0x70000000UL)
 #endif
 
 #ifdef MMNGR_SSP_ENABLE
