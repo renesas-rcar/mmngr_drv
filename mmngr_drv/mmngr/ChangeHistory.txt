@@ -1,0 +1,5 @@
+MMNGR v0.1
+	1. Initial Gen3 support.
+
+MMNGR v0.2
+	1. Remove unused macro MM_OMXBUF_MXI_ADDR.
