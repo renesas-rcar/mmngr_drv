@@ -78,6 +78,7 @@
 static spinlock_t		lock;
 static struct BM		bm;
 static struct BM		bm_ssp;
+static struct BM		bm_lossy;
 static struct MM_DRVDATA	*mm_drvdata;
 
 static int mm_ioc_alloc(struct device *mm_dev,
@@ -238,6 +239,8 @@ static int mm_ioc_alloc_co_select(int __user *in, struct MM_PARAM *out)
 	else if (tmp.flag == MM_CARVEOUT_SSP)
 		ret = mm_ioc_alloc_co(&bm_ssp, in, out);
 #endif
+	else if (tmp.flag == MM_CARVEOUT_LOSSY)
+		ret = mm_ioc_alloc_co(&bm_lossy, in, out);
 
 	return ret;
 }
@@ -329,6 +332,11 @@ static int close(struct inode *inode, struct file *file)
 			pb = &bm_ssp;
 			mm_ioc_free_co(pb, p);
 #endif
+		} else if ((p->flag == MM_CARVEOUT_LOSSY)
+		&& (p->phy_addr != 0)) {
+			    pr_err("MMD close carveout LOSSY\n");
+			    pb = &bm_lossy;
+			    mm_ioc_free_co(pb, p);
 		}
 
 		kfree(p);
@@ -561,6 +569,14 @@ static int mm_probe(struct platform_device *pdev)
 	}
 #endif
 
+#ifdef MM_FUNC_LOSSY_SUPPORT
+	ret = alloc_bm(&bm_lossy, MM_LOSSYBUF_ADDR, MM_LOSSYBUF_SIZE, MM_CO_ORDER);
+	if (ret) {
+		pr_err("MMD mm_init ERROR");
+		return -1;
+	}
+#endif
+
 	p = kzalloc(sizeof(struct MM_DRVDATA), GFP_KERNEL);
 	if (p == NULL)
 		return -1;
@@ -601,6 +617,9 @@ static int mm_remove(struct platform_device *pdev)
 
 #ifdef MMNGR_SSP_ENABLE
 	free_bm(&bm_ssp);
+#endif
+#ifdef MM_FUNC_LOSSY_SUPPORT
+	free_bm(&bm_lossy);
 #endif
 	free_bm(&bm);
 
