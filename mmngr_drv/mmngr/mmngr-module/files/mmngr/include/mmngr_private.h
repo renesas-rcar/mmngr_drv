@@ -147,7 +147,7 @@ static void mmngr_dev_set_cma_area(struct device *dev, struct cma *cma);
 
 #ifdef MMNGR_SSP_ENABLE
 #ifdef MMNGR_SALVATORX
-#define MM_SSPBUF_ADDR	(0x57000000)
+#define MM_SSPBUF_ADDR	(0x54000000)
 #define MM_SSPBUF_SIZE	(16 * 1024 * 1024)
 #endif
 #endif
