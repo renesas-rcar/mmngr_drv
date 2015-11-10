@@ -269,6 +269,8 @@ static void mm_ioc_free_co_select(struct MM_PARAM *p)
 		mm_ioc_free_co(&bm, p);
 	else if (p->flag == MM_CARVEOUT_SSP)
 		mm_ioc_free_co(&bm_ssp, p);
+	else if (p->flag == MM_CARVEOUT_LOSSY)
+		mm_ioc_free_co(&bm_lossy, p);
 }
 
 static int mm_ioc_share(int __user *in, struct MM_PARAM *out)
