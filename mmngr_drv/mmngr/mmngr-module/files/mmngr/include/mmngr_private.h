@@ -87,6 +87,18 @@ struct BM {
 	unsigned long	*bits;
 };
 
+struct LOSSY_INFO {
+	uint32_t magic;
+	uint32_t a0;
+	uint32_t b0;
+	uint32_t ena;
+};
+
+struct LOSSY_DATA {
+	uint32_t fmt;
+	struct BM *bm_lossy;
+};
+
 extern struct cma *rcar_gen3_dma_contiguous;
 
 #define MM_IOC_MAGIC 'm'
@@ -139,6 +151,8 @@ static void mm_ioc_free_co(struct BM *pb, struct MM_PARAM *p);
 static void mm_ioc_free_co_select(struct MM_PARAM *p);
 static int mm_ioc_share(int __user *in, struct MM_PARAM *out);
 static void mmngr_dev_set_cma_area(struct device *dev, struct cma *cma);
+static int init_lossy_info(void);
+static int find_lossy_entry(unsigned int flag, int entry);
 
 #ifdef MMNGR_SALVATORX
 	#define MM_OMXBUF_ADDR	(0x70000000UL)
@@ -156,5 +170,10 @@ static void mmngr_dev_set_cma_area(struct device *dev, struct cma *cma);
 
 #define MM_KERNEL_RESERVE_SIZE	(256 * 1024 * 1024)
 #define	MM_CO_ORDER		(12)
+
+#define MM_LOSSY_INFO_MAGIC		(0x12345678UL)
+#define MM_LOSSY_ADDR_MASK		(0x0003FFFFUL)  /* [17:0] */
+#define MM_LOSSY_FMT_MASK		(0x60000000UL)  /* [30:29] */
+#define MM_LOSSY_ENABLE_MASK		(0x80000000UL)  /* [31] */
 
 #endif	/* __MMNGR_PRIVATE_H__ */

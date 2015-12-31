@@ -78,7 +78,7 @@
 static spinlock_t		lock;
 static struct BM		bm;
 static struct BM		bm_ssp;
-static struct BM		bm_lossy;
+struct LOSSY_DATA		lossy_entries[16];
 static struct MM_DRVDATA	*mm_drvdata;
 
 static int mm_ioc_alloc(struct device *mm_dev,
@@ -214,9 +214,32 @@ static int mm_ioc_alloc_co(struct BM *pb, int __user *in, struct MM_PARAM *out)
 	return 0;
 }
 
+static int find_lossy_entry(unsigned int flag, int entry)
+{
+	uint32_t	i, fmt;
+	int		ret;
+
+	fmt = ((flag & 0xF0) >> 4) - 1;
+	for (i = 0; i < 16; i++) {
+		if (lossy_entries[i].fmt == fmt)
+			break;
+	}
+
+	if (i < 16) {
+		entry = i;
+		ret = 0;
+	} else {
+		entry = -1;
+		ret = -EINVAL; /* Not supported */
+	}
+
+	return ret;
+}
+
 static int mm_ioc_alloc_co_select(int __user *in, struct MM_PARAM *out)
 {
 	int		ret = 0;
+	int		entry = 0;
 	struct MM_PARAM	tmp;
 	struct device	*mm_dev;
 
@@ -239,8 +262,12 @@ static int mm_ioc_alloc_co_select(int __user *in, struct MM_PARAM *out)
 	else if (tmp.flag == MM_CARVEOUT_SSP)
 		ret = mm_ioc_alloc_co(&bm_ssp, in, out);
 #endif
-	else if (tmp.flag == MM_CARVEOUT_LOSSY)
-		ret = mm_ioc_alloc_co(&bm_lossy, in, out);
+	else if ((tmp.flag & 0xF) == MM_CARVEOUT_LOSSY) {
+		ret = find_lossy_entry(tmp.flag, entry);
+		if (ret)
+			return ret;
+		ret = mm_ioc_alloc_co(lossy_entries[entry].bm_lossy, in, out);
+	}
 
 	return ret;
 }
@@ -262,6 +289,7 @@ static void mm_ioc_free_co(struct BM *pb, struct MM_PARAM *p)
 static void mm_ioc_free_co_select(struct MM_PARAM *p)
 {
 	struct device	*mm_dev;
+	int		entry = 0;
 
 	mm_dev = mm_drvdata->mm_dev;
 
@@ -269,8 +297,11 @@ static void mm_ioc_free_co_select(struct MM_PARAM *p)
 		mm_ioc_free_co(&bm, p);
 	else if (p->flag == MM_CARVEOUT_SSP)
 		mm_ioc_free_co(&bm_ssp, p);
-	else if (p->flag == MM_CARVEOUT_LOSSY)
-		mm_ioc_free_co(&bm_lossy, p);
+	else if ((p->flag & 0xF) == MM_CARVEOUT_LOSSY) {
+		find_lossy_entry(p->flag, entry);
+		if (entry >= 0)
+			mm_ioc_free_co(lossy_entries[entry].bm_lossy, p);
+	}
 }
 
 static int mm_ioc_share(int __user *in, struct MM_PARAM *out)
@@ -313,6 +344,7 @@ static int close(struct inode *inode, struct file *file)
 	struct MM_PARAM	*p = file->private_data;
 	struct BM	*pb;
 	struct device	*mm_dev;
+	int		entry = 0;
 
 	if (p) {
 		if ((p->flag == MM_KERNELHEAP)
@@ -334,11 +366,14 @@ static int close(struct inode *inode, struct file *file)
 			pb = &bm_ssp;
 			mm_ioc_free_co(pb, p);
 #endif
-		} else if ((p->flag == MM_CARVEOUT_LOSSY)
+		} else if (((p->flag & 0xF) == MM_CARVEOUT_LOSSY)
 		&& (p->phy_addr != 0)) {
-			    pr_err("MMD close carveout LOSSY\n");
-			    pb = &bm_lossy;
-			    mm_ioc_free_co(pb, p);
+			pr_err("MMD close carveout LOSSY\n");
+			find_lossy_entry(p->flag, entry);
+			if (entry >= 0) {
+				pb = lossy_entries[entry].bm_lossy;
+				mm_ioc_free_co(pb, p);
+			}
 		}
 
 		kfree(p);
@@ -532,6 +567,49 @@ static int mmap(struct file *filp, struct vm_area_struct *vma)
 	return 0;
 }
 
+static int init_lossy_info(void)
+{
+	int ret;
+	void __iomem *mem;
+	uint32_t i, start, end, fmt;
+	struct BM *bm;
+	struct LOSSY_INFO *p;
+
+	mem = ioremap_nocache(0x47F00000, 0x104);
+	if (mem == NULL)
+		return -1;
+
+	p = (struct LOSSY_INFO *)mem;
+
+	for (i=0; i < 16; i++) {
+		/* Validate the entry */
+		if (p->magic != MM_LOSSY_INFO_MAGIC)
+			break;
+		if ((p->a0 & MM_LOSSY_ENABLE_MASK) == 0)
+			break;
+
+		/* Parse entry information */
+		start = (p->a0 & MM_LOSSY_ADDR_MASK) << 20;
+		end = (p->b0 & MM_LOSSY_ADDR_MASK) << 20;
+		fmt = (p->a0 & MM_LOSSY_FMT_MASK) >> 29;
+
+		/* Allocate bitmap for entry */
+		bm = kzalloc(sizeof(struct BM), GFP_KERNEL);
+
+		ret = alloc_bm(bm, start, end - start, MM_CO_ORDER);
+		if (ret)
+			break;
+
+		lossy_entries[i].fmt = fmt;
+		lossy_entries[i].bm_lossy = bm;
+
+		p += sizeof(struct LOSSY_INFO);
+	}
+
+	iounmap(mem);
+	return ret;
+}
+
 static const struct file_operations fops = {
 	.owner		= THIS_MODULE,
 	.open		= open,
@@ -571,13 +649,11 @@ static int mm_probe(struct platform_device *pdev)
 	}
 #endif
 
-#ifdef MM_FUNC_LOSSY_SUPPORT
-	ret = alloc_bm(&bm_lossy, MM_LOSSYBUF_ADDR, MM_LOSSYBUF_SIZE, MM_CO_ORDER);
+	ret = init_lossy_info();
 	if (ret) {
 		pr_err("MMD mm_init ERROR");
 		return -1;
 	}
-#endif
 
 	p = kzalloc(sizeof(struct MM_DRVDATA), GFP_KERNEL);
 	if (p == NULL)
@@ -615,14 +691,20 @@ static int mm_probe(struct platform_device *pdev)
 
 static int mm_remove(struct platform_device *pdev)
 {
+	uint32_t i;
+
 	misc_deregister(&misc);
 
 #ifdef MMNGR_SSP_ENABLE
 	free_bm(&bm_ssp);
 #endif
-#ifdef MM_FUNC_LOSSY_SUPPORT
-	free_bm(&bm_lossy);
-#endif
+
+	for (i=0; i < 16; i++) {
+		if (lossy_entries[i].bm_lossy == NULL)
+			break;
+		free_bm(lossy_entries[i].bm_lossy);
+	}
+
 	free_bm(&bm);
 
 	mmngr_dev_set_cma_area(mm_drvdata->mm_dev_reserve,

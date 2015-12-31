@@ -66,6 +66,4 @@
 #define MM_CARVEOUT_SSP	3
 #define MM_CARVEOUT_LOSSY	4
 
-#define MM_FUNC_LOSSY_SUPPORT
-
 #endif	/* __MMNGR_PUBLIC_H__ */
