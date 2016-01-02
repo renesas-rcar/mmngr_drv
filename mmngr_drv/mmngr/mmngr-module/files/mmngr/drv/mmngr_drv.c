@@ -583,9 +583,9 @@ static int init_lossy_info(void)
 
 	for (i=0; i < 16; i++) {
 		/* Validate the entry */
-		if (p->magic != MM_LOSSY_INFO_MAGIC)
-			break;
-		if ((p->a0 & MM_LOSSY_ENABLE_MASK) == 0)
+		if ((p->magic != MM_LOSSY_INFO_MAGIC)
+		|| ((p->a0 & MM_LOSSY_ENABLE_MASK) == 0)
+		|| (p->a0 == 0) || (p->b0 == 0))
 			break;
 
 		/* Parse entry information */
@@ -595,6 +595,8 @@ static int init_lossy_info(void)
 
 		/* Allocate bitmap for entry */
 		bm = kzalloc(sizeof(struct BM), GFP_KERNEL);
+		if (ret)
+			break;
 
 		ret = alloc_bm(bm, start, end - start, MM_CO_ORDER);
 		if (ret)
