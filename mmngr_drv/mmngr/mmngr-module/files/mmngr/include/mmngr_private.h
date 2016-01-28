@@ -151,7 +151,7 @@ static void mm_ioc_free_co_select(struct MM_PARAM *p);
 static int mm_ioc_share(int __user *in, struct MM_PARAM *out);
 static void mmngr_dev_set_cma_area(struct device *dev, struct cma *cma);
 static int init_lossy_info(void);
-static int find_lossy_entry(unsigned int flag, int entry);
+static int find_lossy_entry(unsigned int flag, int *entry);
 
 #ifdef MMNGR_SALVATORX
 	#define MM_OMXBUF_ADDR	(0x70000000UL)

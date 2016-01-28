@@ -214,7 +214,7 @@ static int mm_ioc_alloc_co(struct BM *pb, int __user *in, struct MM_PARAM *out)
 	return 0;
 }
 
-static int find_lossy_entry(unsigned int flag, int entry)
+static int find_lossy_entry(unsigned int flag, int *entry)
 {
 	uint32_t	i, fmt;
 	int		ret;
@@ -226,10 +226,10 @@ static int find_lossy_entry(unsigned int flag, int entry)
 	}
 
 	if (i < 16) {
-		entry = i;
+		*entry = i;
 		ret = 0;
 	} else {
-		entry = -1;
+		*entry = -1;
 		ret = -EINVAL; /* Not supported */
 	}
 
@@ -263,7 +263,7 @@ static int mm_ioc_alloc_co_select(int __user *in, struct MM_PARAM *out)
 		ret = mm_ioc_alloc_co(&bm_ssp, in, out);
 #endif
 	else if ((tmp.flag & 0xF) == MM_CARVEOUT_LOSSY) {
-		ret = find_lossy_entry(tmp.flag, entry);
+		ret = find_lossy_entry(tmp.flag, &entry);
 		if (ret)
 			return ret;
 		ret = mm_ioc_alloc_co(lossy_entries[entry].bm_lossy, in, out);
@@ -298,7 +298,7 @@ static void mm_ioc_free_co_select(struct MM_PARAM *p)
 	else if (p->flag == MM_CARVEOUT_SSP)
 		mm_ioc_free_co(&bm_ssp, p);
 	else if ((p->flag & 0xF) == MM_CARVEOUT_LOSSY) {
-		find_lossy_entry(p->flag, entry);
+		find_lossy_entry(p->flag, &entry);
 		if (entry >= 0)
 			mm_ioc_free_co(lossy_entries[entry].bm_lossy, p);
 	}
@@ -369,7 +369,7 @@ static int close(struct inode *inode, struct file *file)
 		} else if (((p->flag & 0xF) == MM_CARVEOUT_LOSSY)
 		&& (p->phy_addr != 0)) {
 			pr_err("MMD close carveout LOSSY\n");
-			find_lossy_entry(p->flag, entry);
+			find_lossy_entry(p->flag, &entry);
 			if (entry >= 0) {
 				pb = lossy_entries[entry].bm_lossy;
 				mm_ioc_free_co(pb, p);
@@ -606,7 +606,7 @@ static int init_lossy_info(void)
 		lossy_entries[i].fmt = fmt;
 		lossy_entries[i].bm_lossy = bm;
 
-		p += sizeof(struct LOSSY_INFO);
+		p++;
 	}
 
 	iounmap(mem);
