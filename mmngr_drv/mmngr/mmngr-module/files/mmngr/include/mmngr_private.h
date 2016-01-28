@@ -91,7 +91,6 @@ struct LOSSY_INFO {
 	uint32_t magic;
 	uint32_t a0;
 	uint32_t b0;
-	uint32_t ena;
 };
 
 struct LOSSY_DATA {
@@ -175,5 +174,7 @@ static int find_lossy_entry(unsigned int flag, int entry);
 #define MM_LOSSY_ADDR_MASK		(0x0003FFFFUL)  /* [17:0] */
 #define MM_LOSSY_FMT_MASK		(0x60000000UL)  /* [30:29] */
 #define MM_LOSSY_ENABLE_MASK		(0x80000000UL)  /* [31] */
+#define MM_LOSSY_SHARED_MEM_ADDR	(0x47F00000UL)
+#define MM_LOSSY_SHARED_MEM_SIZE	(16 * sizeof(struct LOSSY_INFO))
 
 #endif	/* __MMNGR_PRIVATE_H__ */

@@ -569,19 +569,20 @@ static int mmap(struct file *filp, struct vm_area_struct *vma)
 
 static int init_lossy_info(void)
 {
-	int ret;
+	int ret = 0;
 	void __iomem *mem;
 	uint32_t i, start, end, fmt;
 	struct BM *bm;
 	struct LOSSY_INFO *p;
 
-	mem = ioremap_nocache(0x47F00000, 0x104);
+	mem = ioremap_nocache(MM_LOSSY_SHARED_MEM_ADDR,
+			MM_LOSSY_SHARED_MEM_SIZE);
 	if (mem == NULL)
 		return -1;
 
 	p = (struct LOSSY_INFO *)mem;
 
-	for (i=0; i < 16; i++) {
+	for (i = 0; i < 16; i++) {
 		/* Validate the entry */
 		if ((p->magic != MM_LOSSY_INFO_MAGIC)
 		|| ((p->a0 & MM_LOSSY_ENABLE_MASK) == 0)
@@ -595,7 +596,7 @@ static int init_lossy_info(void)
 
 		/* Allocate bitmap for entry */
 		bm = kzalloc(sizeof(struct BM), GFP_KERNEL);
-		if (ret)
+		if (bm == NULL)
 			break;
 
 		ret = alloc_bm(bm, start, end - start, MM_CO_ORDER);
