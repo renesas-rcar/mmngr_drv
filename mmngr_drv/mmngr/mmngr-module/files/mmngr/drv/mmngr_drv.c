@@ -79,7 +79,6 @@ static spinlock_t		lock;
 static struct BM		bm;
 static struct BM		bm_ssp;
 static struct MM_DRVDATA	*mm_drvdata;
-static struct device		*dummy_device;
 
 static int mm_ioc_alloc(struct device *mm_dev,
 			int __user *in,
@@ -540,23 +539,24 @@ static struct miscdevice misc = {
 	.fops		= &fops,
 };
 
-static int mm_init(void)
+static int mm_probe(struct platform_device *pdev)
 {
 	int			ret = 0;
 	struct MM_DRVDATA	*p = NULL;
 	phys_addr_t		phy_addr;
 	void			*pkernel_virt_addr;
+	struct device		*dev = &pdev->dev;
 
 	ret = alloc_bm(&bm, MM_OMXBUF_ADDR, MM_OMXBUF_SIZE, MM_CO_ORDER);
 	if (ret) {
-		pr_err("MMD mm_init ERROR");
+		pr_err("MMD mm_probe ERROR");
 		return -1;
 	}
 
 #ifdef MMNGR_SSP_ENABLE
 	ret = alloc_bm(&bm_ssp, MM_SSPBUF_ADDR, MM_SSPBUF_SIZE, MM_CO_ORDER);
 	if (ret) {
-		pr_err("MMD mm_init ERROR");
+		pr_err("MMD mm_probe ERROR");
 		return -1;
 	}
 #endif
@@ -567,46 +567,35 @@ static int mm_init(void)
 
 	misc_register(&misc);
 
-	dummy_device = kzalloc(sizeof(struct device), GFP_KERNEL);
-	if (dummy_device == NULL)
-		return -1;
+	/* Handler for mem alloc in 2nd CMA area */
+	p->mm_dev_reserve = dev;
 
-	dummy_device->cma_area = 0;
-
-	/*
-	 * dummy_device will serve as !NULL device
-	 * for mem alloc in 1st CMA region
-	 */
-	p->mm_dev = dummy_device;
-	p->mm_dev_reserve = misc.this_device;
-	p->mm_dev_reserve->coherent_dma_mask = ~0;
-	mm_drvdata = p;
-
-	spin_lock_init(&lock);
-
-	if (rcar_gen3_dma_contiguous == NULL) {
-		pr_err("MMD mm_init ERROR");
-		return -1;
-	}
 	mmngr_dev_set_cma_area(p->mm_dev_reserve, rcar_gen3_dma_contiguous);
 	pkernel_virt_addr = dma_alloc_coherent(p->mm_dev_reserve,
 					MM_KERNEL_RESERVE_SIZE,
 					(dma_addr_t *)&phy_addr,
 					GFP_KERNEL);
-	mm_drvdata->reserve_size = MM_KERNEL_RESERVE_SIZE;
-	mm_drvdata->reserve_kernel_virt_addr = (unsigned long)pkernel_virt_addr;
-	mm_drvdata->reserve_phy_addr = (unsigned long)phy_addr;
-	pr_debug("MMD reserve area from 0x%pK to 0x%pK at virtual\n",
+	p->reserve_size = MM_KERNEL_RESERVE_SIZE;
+	p->reserve_kernel_virt_addr = (unsigned long)pkernel_virt_addr;
+	p->reserve_phy_addr = (unsigned long)phy_addr;
+	pr_info("MMD reserve area from 0x%pK to 0x%pK at virtual\n",
 		pkernel_virt_addr,
 		pkernel_virt_addr + MM_KERNEL_RESERVE_SIZE - 1);
-	pr_debug("MMD reserve area from 0x%08x to 0x%08x at physical\n",
+	pr_info("MMD reserve area from 0x%08x to 0x%08x at physical\n",
 		(unsigned int)phy_addr,
 		(unsigned int)phy_addr + MM_KERNEL_RESERVE_SIZE - 1);
+
+	/* Handler for mem alloc in 1st CMA area */
+	dev->cma_area = 0;
+	p->mm_dev = dev;
+	mm_drvdata = p;
+
+	spin_lock_init(&lock);
 
 	return 0;
 }
 
-static void mm_exit(void)
+static int mm_remove(struct platform_device *pdev)
 {
 	misc_deregister(&misc);
 
@@ -615,13 +604,40 @@ static void mm_exit(void)
 #endif
 	free_bm(&bm);
 
+	mmngr_dev_set_cma_area(mm_drvdata->mm_dev_reserve, rcar_gen3_dma_contiguous);
 	dma_free_coherent(mm_drvdata->mm_dev_reserve,
 			mm_drvdata->reserve_size,
 			(void *)mm_drvdata->reserve_kernel_virt_addr,
 			(dma_addr_t)mm_drvdata->reserve_phy_addr);
 
 	kfree(mm_drvdata);
-	kfree(dummy_device);
+
+	return 0;
+}
+
+static const struct of_device_id mm_of_match[] = {
+	{ .compatible = "renesas,mmngr" },
+	{ },
+};
+
+static struct platform_driver mm_driver = {
+	.driver = {
+		.name = DEVNAME "_drv",
+		.owner = THIS_MODULE,
+		.of_match_table = mm_of_match,
+	},
+	.probe = mm_probe,
+	.remove = mm_remove,
+};
+
+static int mm_init(void)
+{
+	return platform_driver_register(&mm_driver);
+}
+
+static void mm_exit(void)
+{
+	platform_driver_unregister(&mm_driver);
 }
 
 module_init(mm_init);
