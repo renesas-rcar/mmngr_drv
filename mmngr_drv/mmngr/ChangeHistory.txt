@@ -3,3 +3,6 @@ MMNGR v0.1
 
 MMNGR v0.2
 	1. Remove unused macro MM_OMXBUF_MXI_ADDR.
+
+MMNGR v0.3
+	1. Change MMNGR driver into a DT-compatible driver.
