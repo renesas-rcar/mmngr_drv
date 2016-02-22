@@ -156,8 +156,6 @@ static int find_lossy_entry(unsigned int flag, int *entry);
 #ifdef MMNGR_SALVATORX
 	#define MM_OMXBUF_ADDR	(0x70000000UL)
 	#define MM_OMXBUF_SIZE	(256 * 1024 * 1024)
-	#define MM_LOSSYBUF_ADDR	(0x55000000UL)
-	#define MM_LOSSYBUF_SIZE	(48 * 1024 * 1024)
 #endif
 
 #ifdef MMNGR_SSP_ENABLE
