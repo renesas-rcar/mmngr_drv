@@ -162,7 +162,7 @@ static int find_lossy_entry(unsigned int flag, int *entry);
 
 #ifdef MMNGR_SSP_ENABLE
 #ifdef MMNGR_SALVATORX
-#define MM_SSPBUF_ADDR	(0x54000000)
+#define MM_SSPBUF_ADDR	(0x53000000)
 #define MM_SSPBUF_SIZE	(16 * 1024 * 1024)
 #endif
 #endif
