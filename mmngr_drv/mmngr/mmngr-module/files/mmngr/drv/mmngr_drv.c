@@ -71,6 +71,8 @@
 #include <linux/version.h>
 #include <linux/dma-attrs.h>
 #include <linux/dma-contiguous.h>
+#include <linux/of.h>
+#include <linux/of_address.h>
 
 #include "mmngr_public.h"
 #include "mmngr_private.h"
@@ -80,6 +82,10 @@ static struct BM		bm;
 static struct BM		bm_ssp;
 struct LOSSY_DATA		lossy_entries[16];
 static struct MM_DRVDATA	*mm_drvdata;
+static u64			mm_kernel_reserve_addr;
+static u64			mm_kernel_reserve_size;
+static u64			mm_lossybuf_addr;
+static u64			mm_lossybuf_size;
 
 static int mm_ioc_alloc(struct device *mm_dev,
 			int __user *in,
@@ -567,6 +573,48 @@ static int mmap(struct file *filp, struct vm_area_struct *vma)
 	return 0;
 }
 
+static int _parse_reserved_mem_dt(char *dt_path,
+			u64 *addr, u64 *size)
+{
+	const u32 *regaddr_p;
+	struct device_node *node;
+
+	node = of_find_node_by_path(dt_path);
+	if (!node)
+		return -1;
+
+	regaddr_p = of_get_address(node, 0, size, NULL);
+	if (!regaddr_p) {
+		of_node_put(node);
+		return -1;
+	}
+
+	*addr = of_translate_address(node, regaddr_p);
+
+	of_node_put(node);
+
+	return 0;
+}
+
+static int parse_reserved_mem_dt(void)
+{
+	int ret = 0;
+
+	ret = _parse_reserved_mem_dt(
+			"/reserved-memory/linux,lossy_decompress",
+			&mm_lossybuf_addr, &mm_lossybuf_size);
+	if (ret)
+		return ret;
+
+	ret = _parse_reserved_mem_dt(
+			"/reserved-memory/linux,multimedia",
+			&mm_kernel_reserve_addr, &mm_kernel_reserve_size);
+	if (ret)
+		return ret;
+
+	return ret;
+}
+
 static int init_lossy_info(void)
 {
 	int ret = 0;
@@ -637,6 +685,12 @@ static int mm_probe(struct platform_device *pdev)
 	phys_addr_t		phy_addr;
 	void			*pkernel_virt_addr;
 	struct device		*dev = &pdev->dev;
+
+	ret = parse_reserved_mem_dt();
+	if (ret) {
+		pr_err("MMD mm_probe ERROR");
+		return -1;
+	}
 
 	ret = alloc_bm(&bm, MM_OMXBUF_ADDR, MM_OMXBUF_SIZE, MM_CO_ORDER);
 	if (ret) {
