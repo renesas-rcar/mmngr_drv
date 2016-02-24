@@ -771,18 +771,18 @@ static int mm_probe(struct platform_device *pdev)
 
 	mmngr_dev_set_cma_area(p->mm_dev_reserve, rcar_gen3_dma_contiguous);
 	pkernel_virt_addr = dma_alloc_coherent(p->mm_dev_reserve,
-					MM_KERNEL_RESERVE_SIZE,
+					mm_kernel_reserve_size,
 					(dma_addr_t *)&phy_addr,
 					GFP_KERNEL);
-	p->reserve_size = MM_KERNEL_RESERVE_SIZE;
+	p->reserve_size = mm_kernel_reserve_size;
 	p->reserve_kernel_virt_addr = (unsigned long)pkernel_virt_addr;
 	p->reserve_phy_addr = (unsigned long)phy_addr;
 	pr_debug("MMD reserve area from 0x%pK to 0x%pK at virtual\n",
 		pkernel_virt_addr,
-		pkernel_virt_addr + MM_KERNEL_RESERVE_SIZE - 1);
-	pr_debug("MMD reserve area from 0x%08x to 0x%08x at physical\n",
+		pkernel_virt_addr + mm_kernel_reserve_size - 1);
+	pr_debug("MMD reserve area from 0x%08x to 0x%llx at physical\n",
 		(unsigned int)phy_addr,
-		(unsigned int)phy_addr + MM_KERNEL_RESERVE_SIZE - 1);
+		(unsigned int)phy_addr + mm_kernel_reserve_size - 1);
 
 	/* Handler for mem alloc in 1st CMA area */
 	dev->cma_area = 0;

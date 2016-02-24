@@ -164,12 +164,11 @@ static int validate_memory_map(void);
 
 #ifdef MMNGR_SSP_ENABLE
 #ifdef MMNGR_SALVATORX
-#define MM_SSPBUF_ADDR	(0x53000000)
+#define MM_SSPBUF_ADDR	(0x53000000UL)
 #define MM_SSPBUF_SIZE	(16 * 1024 * 1024)
 #endif
 #endif
 
-#define MM_KERNEL_RESERVE_SIZE	(256 * 1024 * 1024)
 #define	MM_CO_ORDER		(12)
 
 #define MM_LOSSY_INFO_MAGIC		(0x12345678UL)
