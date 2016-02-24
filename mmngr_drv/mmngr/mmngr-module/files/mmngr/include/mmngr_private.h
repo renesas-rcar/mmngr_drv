@@ -155,6 +155,7 @@ static int find_lossy_entry(unsigned int flag, int *entry);
 static int _parse_reserved_mem_dt(char *dt_path,
 			u64 *addr, u64 *size);
 static int parse_reserved_mem_dt(void);
+static int validate_memory_map(void);
 
 #ifdef MMNGR_SALVATORX
 	#define MM_OMXBUF_ADDR	(0x70000000UL)

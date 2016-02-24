@@ -573,6 +573,29 @@ static int mmap(struct file *filp, struct vm_area_struct *vma)
 	return 0;
 }
 
+static int validate_memory_map(void)
+{
+	int ret = 0;
+
+	if (mm_kernel_reserve_size < MM_OMXBUF_SIZE) {
+		pr_warn("The size (0x%x) of OMXBUF is over "\
+			"the kernel reserved size (0x%llx) for Multimedia.\n",
+			MM_OMXBUF_SIZE, mm_kernel_reserve_size);
+		ret = -1;
+	}
+
+#ifdef MMNGR_SSP_ENABLE
+	if (mm_kernel_reserve_size < (MM_OMXBUF_SIZE + MM_SSPBUF_SIZE)) {
+		pr_warn("The total size (0x%x) of OMXBUF and SSPBUF is over "\
+			"the kernel reserved size (0x%llx) for Multimedia.\n",
+			MM_OMXBUF_SIZE + MM_SSPBUF_SIZE,
+			mm_kernel_reserve_size);
+		ret = -1;
+	}
+#endif
+	return ret;
+}
+
 static int _parse_reserved_mem_dt(char *dt_path,
 			u64 *addr, u64 *size)
 {
@@ -706,6 +729,12 @@ static int mm_probe(struct platform_device *pdev)
 	struct device		*dev = &pdev->dev;
 
 	ret = parse_reserved_mem_dt();
+	if (ret) {
+		pr_err("MMD mm_probe ERROR");
+		return -1;
+	}
+
+	ret = validate_memory_map();
 	if (ret) {
 		pr_err("MMD mm_probe ERROR");
 		return -1;
