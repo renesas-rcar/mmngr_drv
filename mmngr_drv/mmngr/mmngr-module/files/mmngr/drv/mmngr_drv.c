@@ -670,7 +670,7 @@ static int init_lossy_info(void)
 		if (i == 0 && start != mm_lossybuf_addr) {
 			pr_warn("Mismatch between the start address (0x%llx) "\
 				"of reserved mem and start address (0x%x) "\
-				"of Lossy enabled area", mm_lossybuf_addr,
+				"of Lossy enabled area.\n", mm_lossybuf_addr,
 				start);
 			break;
 		}
@@ -678,7 +678,7 @@ static int init_lossy_info(void)
 		total_lossy_size += end - start;
 		if (total_lossy_size > mm_lossybuf_size) {
 			pr_warn("Size of Lossy enabled areas (0x%x) is over "\
-				"the size of reserved mem(0x%x)",
+				"the size of reserved mem(0x%x).\n",
 				total_lossy_size,
 				(unsigned int)mm_lossybuf_size);
 			break;
@@ -730,33 +730,33 @@ static int mm_probe(struct platform_device *pdev)
 
 	ret = parse_reserved_mem_dt();
 	if (ret) {
-		pr_err("MMD mm_probe ERROR");
+		pr_err("MMD mm_probe ERROR\n");
 		return -1;
 	}
 
 	ret = validate_memory_map();
 	if (ret) {
-		pr_err("MMD mm_probe ERROR");
+		pr_err("MMD mm_probe ERROR\n");
 		return -1;
 	}
 
 	ret = alloc_bm(&bm, MM_OMXBUF_ADDR, MM_OMXBUF_SIZE, MM_CO_ORDER);
 	if (ret) {
-		pr_err("MMD mm_probe ERROR");
+		pr_err("MMD mm_probe ERROR\n");
 		return -1;
 	}
 
 #ifdef MMNGR_SSP_ENABLE
 	ret = alloc_bm(&bm_ssp, MM_SSPBUF_ADDR, MM_SSPBUF_SIZE, MM_CO_ORDER);
 	if (ret) {
-		pr_err("MMD mm_probe ERROR");
+		pr_err("MMD mm_probe ERROR\n");
 		return -1;
 	}
 #endif
 
 	ret = init_lossy_info();
 	if (ret) {
-		pr_err("MMD mm_init ERROR");
+		pr_err("MMD mm_init ERROR\n");
 		return -1;
 	}
 
