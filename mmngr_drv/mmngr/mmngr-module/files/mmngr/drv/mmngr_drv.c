@@ -622,6 +622,7 @@ static int init_lossy_info(void)
 	uint32_t i, start, end, fmt;
 	struct BM *bm;
 	struct LOSSY_INFO *p;
+	uint32_t total_lossy_size = 0;
 
 	mem = ioremap_nocache(MM_LOSSY_SHARED_MEM_ADDR,
 			MM_LOSSY_SHARED_MEM_SIZE);
@@ -641,6 +642,24 @@ static int init_lossy_info(void)
 		start = (p->a0 & MM_LOSSY_ADDR_MASK) << 20;
 		end = (p->b0 & MM_LOSSY_ADDR_MASK) << 20;
 		fmt = (p->a0 & MM_LOSSY_FMT_MASK) >> 29;
+
+		/* Validate kernel reserved mem for Lossy */
+		if (i == 0 && start != mm_lossybuf_addr) {
+			pr_warn("Mismatch between the start address (0x%llx) "\
+				"of reserved mem and start address (0x%x) "\
+				"of Lossy enabled area", mm_lossybuf_addr,
+				start);
+			break;
+		}
+
+		total_lossy_size += end - start;
+		if (total_lossy_size > mm_lossybuf_size) {
+			pr_warn("Size of Lossy enabled areas (0x%x) is over "\
+				"the size of reserved mem(0x%x)",
+				total_lossy_size,
+				(unsigned int)mm_lossybuf_size);
+			break;
+		}
 
 		/* Allocate bitmap for entry */
 		bm = kzalloc(sizeof(struct BM), GFP_KERNEL);
