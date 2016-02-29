@@ -624,16 +624,22 @@ static int parse_reserved_mem_dt(void)
 	int ret = 0;
 
 	ret = _parse_reserved_mem_dt(
-			"/reserved-memory/linux,lossy_decompress",
-			&mm_lossybuf_addr, &mm_lossybuf_size);
-	if (ret)
-		return ret;
-
-	ret = _parse_reserved_mem_dt(
 			"/reserved-memory/linux,multimedia",
 			&mm_kernel_reserve_addr, &mm_kernel_reserve_size);
-	if (ret)
+	if (ret) {
+		pr_warn("Failed to parse MMP reserved area" \
+			 "(linux,multimedia) from DT");
 		return ret;
+	}
+
+	ret = _parse_reserved_mem_dt(
+			"/reserved-memory/linux,lossy_decompress",
+			&mm_lossybuf_addr, &mm_lossybuf_size);
+	if (ret) {
+		pr_warn("Failed to parse Lossy reserved area" \
+			"(linux,lossy_decompress) from DT");
+		ret = 0; /* Let MMNGR support other features */
+	}
 
 	return ret;
 }
