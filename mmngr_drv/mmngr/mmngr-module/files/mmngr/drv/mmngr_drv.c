@@ -226,6 +226,8 @@ static int find_lossy_entry(unsigned int flag, int *entry)
 	int		ret;
 
 	fmt = ((flag & 0xF0) >> 4) - 1;
+	pr_debug("Requested format 0x%x.\n", fmt);
+
 	for (i = 0; i < 16; i++) {
 		if (lossy_entries[i].fmt == fmt)
 			break;
@@ -238,6 +240,8 @@ static int find_lossy_entry(unsigned int flag, int *entry)
 		*entry = -1;
 		ret = -EINVAL; /* Not supported */
 	}
+
+	pr_debug("Found entry no.%d\n", i);
 
 	return ret;
 }
@@ -698,6 +702,8 @@ static int init_lossy_info(void)
 		ret = alloc_bm(bm, start, end - start, MM_CO_ORDER);
 		if (ret)
 			break;
+
+		pr_debug("Support entry %d with format 0x%x.\n", i, fmt);
 
 		lossy_entries[i].fmt = fmt;
 		lossy_entries[i].bm_lossy = bm;
