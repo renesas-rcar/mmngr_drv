@@ -632,7 +632,7 @@ static int parse_reserved_mem_dt(void)
 			&mm_kernel_reserve_addr, &mm_kernel_reserve_size);
 	if (ret) {
 		pr_warn("Failed to parse MMP reserved area" \
-			 "(linux,multimedia) from DT");
+			 "(linux,multimedia) from DT\n");
 		return ret;
 	}
 
@@ -641,7 +641,7 @@ static int parse_reserved_mem_dt(void)
 			&mm_lossybuf_addr, &mm_lossybuf_size);
 	if (ret) {
 		pr_warn("Failed to parse Lossy reserved area" \
-			"(linux,lossy_decompress) from DT");
+			"(linux,lossy_decompress) from DT\n");
 		ret = 0; /* Let MMNGR support other features */
 	}
 
