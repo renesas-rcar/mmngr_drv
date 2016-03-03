@@ -86,6 +86,7 @@ static u64			mm_kernel_reserve_addr;
 static u64			mm_kernel_reserve_size;
 static u64			mm_lossybuf_addr;
 static u64			mm_lossybuf_size;
+static bool			have_lossy_entries;
 
 static int mm_ioc_alloc(struct device *mm_dev,
 			int __user *in,
@@ -224,6 +225,9 @@ static int find_lossy_entry(unsigned int flag, int *entry)
 {
 	uint32_t	i, fmt;
 	int		ret;
+
+	if (!have_lossy_entries)
+		return -EINVAL; /* Not supported */
 
 	fmt = ((flag & 0xF0) >> 4) - 1;
 	pr_debug("Requested format 0x%x.\n", fmt);
@@ -657,6 +661,8 @@ static int init_lossy_info(void)
 	struct LOSSY_INFO *p;
 	uint32_t total_lossy_size = 0;
 
+	have_lossy_entries = false;
+
 	mem = ioremap_nocache(MM_LOSSY_SHARED_MEM_ADDR,
 			MM_LOSSY_SHARED_MEM_SIZE);
 	if (mem == NULL)
@@ -710,6 +716,9 @@ static int init_lossy_info(void)
 
 		p++;
 	}
+
+	if (i > 0)
+		have_lossy_entries = true;
 
 	iounmap(mem);
 	return ret;
