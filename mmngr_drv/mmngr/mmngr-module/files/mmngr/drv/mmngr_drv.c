@@ -240,12 +240,12 @@ static int find_lossy_entry(unsigned int flag, int *entry)
 	if (i < 16) {
 		*entry = i;
 		ret = 0;
+		pr_debug("Found entry no.%d\n", i);
 	} else {
 		*entry = -1;
 		ret = -EINVAL; /* Not supported */
+		pr_debug("No entry is found!\n");
 	}
-
-	pr_debug("Found entry no.%d\n", i);
 
 	return ret;
 }
