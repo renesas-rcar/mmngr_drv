@@ -892,11 +892,32 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 		else
 			ret = -1;
 
+	} else if (handling == DISABLE_PMB) { /* Disable PMB of IPMMU */
+		for (j = 0; j < reg_count; j++) {
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMPCTR"))
+				break;
+		}
+
+		if (j < reg_count) /* Found IMPCTR */
+			iowrite32(~IMPCTR_VAL & ioread32(
+				virt_addr + ipmmu_reg[j].reg_offset),
+				virt_addr + ipmmu_reg[j].reg_offset);
+		else
+			ret = -1;
+
 	} else if (handling == ENABLE_UTLB) { /* Enable utlb for IP master */
 		for (j = 0; j < masters_count; j++)
 			iowrite32(IMUCTR_VAL,
 				virt_addr +
 				IMUCTRn_OFFSET(ip_masters[j].utlb_no));
+
+	} else if (handling == DISABLE_UTLB) { /* Disable utlb for IP master */
+		for (j = 0; j < masters_count; j++)
+			iowrite32(~IMUCTR_VAL & ioread32(
+				virt_addr + IMUCTRn_OFFSET(
+						ip_masters[j].utlb_no)),
+				virt_addr + IMUCTRn_OFFSET(
+						ip_masters[j].utlb_no));
 
 	} else if (handling == SET_PMB_AREA) { /* Enable PMB area for IPMMU */
 		for (j = 0; j < reg_count; j++) {
@@ -909,6 +930,18 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 				virt_addr + ipmmu_reg[j].reg_offset);
 			iowrite32(IMPMBDn_VAL | p2v_map[k].impmbd,
 				virt_addr + ipmmu_reg[j+1].reg_offset);
+			j += 2; /* Move to next PMB entry */
+		}
+
+	} else if (handling == CLEAR_PMB_AREA) { /* Clear PMB area for IPMMU */
+		for (j = 0; j < reg_count; j++) {
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMPMBA0"))
+				break;
+		}
+
+		for (k = 0; k < ARRAY_SIZE(p2v_map); k++) {
+			iowrite32(0x0, virt_addr + ipmmu_reg[j].reg_offset);
+			iowrite32(0x0, virt_addr + ipmmu_reg[j+1].reg_offset);
 			j += 2; /* Move to next PMB entry */
 		}
 
@@ -1004,6 +1037,11 @@ static int pmb_init(void)
 static void pmb_exit(void)
 {
 	pmb_debuginfo();
+
+	/* Disable all uTLB and PMB support */
+	handle_registers(rcar_gen3_ipmmu, DISABLE_UTLB);
+	handle_registers(rcar_gen3_ipmmu, DISABLE_PMB);
+	handle_registers(rcar_gen3_ipmmu, CLEAR_PMB_AREA);
 
 	unmap_register();
 }
