@@ -131,13 +131,11 @@ enum {
 struct hw_register {
 	char *reg_name;
 	unsigned int reg_offset;
-	void __iomem *virt_addr;
 };
 
 struct ip_master {
 	char *ip_name;
 	unsigned int utlb_no;
-	void __iomem *virt_addr;
 };
 
 struct phys2virt_map {
@@ -147,7 +145,8 @@ struct phys2virt_map {
 
 struct rcar_ipmmu {
 	char *ipmmu_name;
-	phys_addr_t base_addr;
+	unsigned int base_addr;
+	void __iomem *virt_addr;
 	unsigned int reg_count;
 	unsigned int masters_count;
 	struct hw_register *ipmmu_reg;
@@ -236,9 +235,10 @@ static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
 #define IMPEAR_OFFSET		(0x20C)
 #define IMPMBAn_OFFSET(n)	(0x280 + 0x4  * n)
 #define IMPMBDn_OFFSET(n)	(0x2C0 + 0x4  * n)
+#define MAX_UTLB		(32) /* (48) */
 #define IMUCTRn_OFFSET(n)	(0x300 + 0x10 * n)
 
-#define REG_SIZE		(4)
+#define REG_SIZE		IMUCTRn_OFFSET(MAX_UTLB)
 #define IMPCTR_VAL		(0x00000001)
 #define IMUCTR_VAL		(0x00000081)
 #define IMPMBAn_VAL		(0x00000100)

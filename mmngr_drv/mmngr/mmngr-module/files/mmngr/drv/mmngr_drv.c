@@ -135,12 +135,12 @@ static struct rcar_ipmmu ipmmuvc0 = {
 
 static struct ip_master ipmmuvc1_masters[] = {
 	{"FCP-CI ch0",	4},
-	{"FCP-CI ch1",	4},
+	{"FCP-CI ch1",	5},
 };
 
 static struct rcar_ipmmu ipmmuvc1 = {
 	.ipmmu_name	= "IPMMUVC1",
-	.base_addr	= IPMMUVC0_BASE,
+	.base_addr	= IPMMUVC1_BASE,
 	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
 	.masters_count	= ARRAY_SIZE(ipmmuvc1_masters),
 	.ipmmu_reg	= ipmmu_ip_regs,
@@ -855,56 +855,29 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 	int ret = 0;
 	unsigned int j, k;
 	phys_addr_t base_addr = ipmmu->base_addr;
+	void __iomem *virt_addr = ipmmu->virt_addr;
 	unsigned int reg_count = ipmmu->reg_count;
 	unsigned int masters_count = ipmmu->masters_count;
 	struct hw_register *ipmmu_reg = ipmmu->ipmmu_reg;
 	struct ip_master *ip_masters = ipmmu->ip_masters;
 
 	if (handling == DO_IOREMAP) { /* ioremap */
-		/* IOREMAP Common registers in an IPMMU */
-		for (j = 0; j < reg_count; j++) {
-			ipmmu_reg[j].virt_addr = ioremap_nocache(base_addr +
-					ipmmu_reg[j].reg_offset, REG_SIZE);
+		/* IOREMAP registers in an IPMMU */
+		ipmmu->virt_addr = ioremap_nocache(base_addr, REG_SIZE);
+		if (ipmmu->virt_addr == NULL)
+			ret = -1;
 
-			if (!ipmmu_reg[j].virt_addr) {
-				ret = -1;
-				break;
-			}
-
-			pr_debug("%s: Register %s, offset 0x%x, virt_addr 0x%p\n",
-				__func__, ipmmu_reg[j].reg_name,
-				ipmmu_reg[j].reg_offset,
-				ipmmu_reg[j].virt_addr);
-		}
-
-		/* IOREMAP uTLB registers for each IP master */
-		for (j = 0; j < masters_count; j++) {
-			ip_masters[j].virt_addr = ioremap_nocache(base_addr +
-					IMUCTRn_OFFSET(ip_masters[j].utlb_no),
-					REG_SIZE);
-
-			if (!ip_masters[j].virt_addr) {
-				ret = -1;
-				break;
-			}
-
-			pr_debug("%s: Register %s, utlb_no 0x%x, virt_addr 0x%p\n",
-				__func__, ip_masters[j].ip_name,
-				ip_masters[j].utlb_no, ip_masters[j].virt_addr);
-		}
+		pr_debug("\n%s: DO_IOREMAP: %s, virt_addr 0x%lx\n",
+			__func__, ipmmu->ipmmu_name,
+			(unsigned long) ipmmu->virt_addr);
 
 	} else if (handling == DO_IOUNMAP) { /* iounmap*/
-		/* IOREMAP Common registers in an IPMMU */
-		for (j = 0; j < reg_count; j++) {
-			iounmap(ipmmu_reg[j].virt_addr);
-			ipmmu_reg[j].virt_addr = NULL;
-		}
-
-		/* IOUNMAP uTLB registers for each IP master */
-		for (j = 0; j < masters_count; j++) {
-			iounmap(ip_masters[j].virt_addr);
-			ip_masters[j].virt_addr = NULL;
-		}
+		/* IOUNMAP registers in an IPMMU */
+		iounmap(ipmmu->virt_addr);
+		ipmmu->virt_addr = NULL;
+		pr_debug("%s: DO_IOUNMAP: %s, virt_addr 0x%lx\n",
+			__func__, ipmmu->ipmmu_name,
+			(unsigned long) ipmmu->virt_addr);
 
 	} else if (handling == ENABLE_PMB) { /* Enable PMB of IPMMU */
 		for (j = 0; j < reg_count; j++) {
@@ -913,14 +886,17 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 		}
 
 		if (j < reg_count) /* Found IMPCTR */
-			iowrite32(IMPCTR_VAL | ioread32(ipmmu_reg[j].virt_addr),
-				ipmmu_reg[j].virt_addr);
+			iowrite32(IMPCTR_VAL |
+				ioread32(virt_addr + ipmmu_reg[j].reg_offset),
+				virt_addr + ipmmu_reg[j].reg_offset);
 		else
 			ret = -1;
 
 	} else if (handling == ENABLE_UTLB) { /* Enable utlb for IP master */
 		for (j = 0; j < masters_count; j++)
-			iowrite32(IMUCTR_VAL, ip_masters[j].virt_addr);
+			iowrite32(IMUCTR_VAL,
+				virt_addr +
+				IMUCTRn_OFFSET(ip_masters[j].utlb_no));
 
 	} else if (handling == SET_PMB_AREA) { /* Enable PMB area for IPMMU */
 		for (j = 0; j < reg_count; j++) {
@@ -930,9 +906,9 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 
 		for (k = 0; k < ARRAY_SIZE(p2v_map); k++) {
 			iowrite32(IMPMBAn_VAL | p2v_map[k].impmba,
-				ipmmu_reg[j].virt_addr);
+				virt_addr + ipmmu_reg[j].reg_offset);
 			iowrite32(IMPMBDn_VAL | p2v_map[k].impmbd,
-				ipmmu_reg[j+1].virt_addr);
+				virt_addr + ipmmu_reg[j+1].reg_offset);
 			j += 2; /* Move to next PMB entry */
 		}
 
@@ -942,9 +918,9 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 				break;
 		}
 
-		pr_err("%s: IMPSTR(%08x), IMPEAR(%08x)\n", __func__,
-			ioread32(ipmmu_reg[j].virt_addr),
-			ioread32(ipmmu_reg[j+1].virt_addr));
+		pr_err("%s: IMPSTR(%08x), IMPEAR(%08x)\n", ipmmu->ipmmu_name,
+			ioread32(virt_addr + ipmmu_reg[j].reg_offset),
+			ioread32(virt_addr + ipmmu_reg[j+1].reg_offset));
 
 	} else { /* Invalid */
 		pr_info("%s: Invalid parameters\n", __func__);
