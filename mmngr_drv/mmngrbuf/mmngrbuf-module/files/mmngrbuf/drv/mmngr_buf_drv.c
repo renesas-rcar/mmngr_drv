@@ -1,7 +1,7 @@
 /*************************************************************************/ /*
  MMNGR
 
- Copyright (C) 2015 Renesas Electronics Corporation
+ Copyright (C) 2015-2016 Renesas Electronics Corporation
 
  License        Dual MIT/GPLv2
 
@@ -64,6 +64,7 @@
 #include <linux/slab.h>
 #include <linux/dma-mapping.h>
 #include <linux/miscdevice.h>
+#include <linux/platform_device.h>
 #include <linux/dma-buf.h>
 #include <linux/version.h>
 
@@ -435,16 +436,43 @@ static int mm_ioc_import_end(struct MM_BUF_PRIVATE *priv)
 	return 0;
 }
 
-static int mm_init(void)
+static int mm_probe(struct platform_device *pdev)
 {
 	misc_register(&misc);
 
 	return 0;
 }
 
-static void mm_exit(void)
+static int mm_remove(struct platform_device *pdev)
 {
 	misc_deregister(&misc);
+
+	return 0;
+}
+
+static const struct of_device_id mm_of_match[] = {
+	{ .compatible = "renesas,mmngrbuf" },
+	{ },
+};
+
+static struct platform_driver mm_driver = {
+	.driver = {
+		.name = DEVNAME "_drv",
+		.owner = THIS_MODULE,
+		.of_match_table = mm_of_match,
+	},
+	.probe = mm_probe,
+	.remove = mm_remove,
+};
+
+static int mm_init(void)
+{
+	return platform_driver_register(&mm_driver);
+}
+
+static void mm_exit(void)
+{
+	platform_driver_unregister(&mm_driver);
 }
 
 module_init(mm_init);
