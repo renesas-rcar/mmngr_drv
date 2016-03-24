@@ -6,3 +6,6 @@ MMNGR v0.2
 
 MMNGR v0.3
 	1. Change MMNGR driver into a DT-compatible driver.
+
+MMNGR v0.4
+	1. Add support for Lossy Decompression feature.
