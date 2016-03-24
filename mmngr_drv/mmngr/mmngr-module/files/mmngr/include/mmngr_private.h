@@ -275,8 +275,8 @@ static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
 #define CMA_128MB_P1_PHYS	(0x58000000)
 #define CMA_128MB_P2_PHYS	(0x60000000)
 #define CMA_128MB_P3_PHYS	(0x68000000)
-#define MMP_CMA_128MB_P1_PHYS	(0x30050000)
-#define MMP_CMA_128MB_P2_PHYS	(0x38050000)
+#define MMP_CMA_128MB_P1_PHYS	(0x30060000)
+#define MMP_CMA_128MB_P2_PHYS	(0x38060000)
 #endif
 
 #endif	/* __MMNGR_PRIVATE_H__ */
