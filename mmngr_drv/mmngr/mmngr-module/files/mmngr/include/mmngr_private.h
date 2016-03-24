@@ -119,6 +119,41 @@ struct COMPAT_MM_PARAM {
 	compat_uint_t	flag;
 };
 
+enum {
+	DO_IOREMAP,
+	DO_IOUNMAP,
+	ENABLE_PMB,
+	ENABLE_UTLB,
+	SET_PMB_AREA,
+	PRINT_PMB_DEBUG,
+};
+
+struct hw_register {
+	char *reg_name;
+	unsigned int reg_offset;
+	void __iomem *virt_addr;
+};
+
+struct ip_master {
+	char *ip_name;
+	unsigned int utlb_no;
+	void __iomem *virt_addr;
+};
+
+struct phys2virt_map {
+	unsigned int impmba;
+	unsigned int impmbd;
+};
+
+struct rcar_ipmmu {
+	char *ipmmu_name;
+	phys_addr_t base_addr;
+	unsigned int reg_count;
+	unsigned int masters_count;
+	struct hw_register *ipmmu_reg;
+	struct ip_master *ip_masters;
+};
+
 #define COMPAT_MM_IOC_ALLOC	_IOWR(MM_IOC_MAGIC, 0, struct COMPAT_MM_PARAM)
 #define COMPAT_MM_IOC_FREE	_IOWR(MM_IOC_MAGIC, 1, struct COMPAT_MM_PARAM)
 #define COMPAT_MM_IOC_SET	_IOWR(MM_IOC_MAGIC, 2, struct COMPAT_MM_PARAM)
@@ -157,6 +192,18 @@ static int _parse_reserved_mem_dt(char *dt_path,
 static int parse_reserved_mem_dt(void);
 static int validate_memory_map(void);
 
+/* IPMMU (PMB mode) */
+static int map_register(void);
+static void unmap_register(void);
+static void enable_pmb(void);
+static void enable_utlb(void);
+static void set_pmb_area(void);
+static void pmb_debuginfo(void);
+static int pmb_init(void);
+static void pmb_exit(void);
+static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling);
+static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
+
 #if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
 	#define MM_OMXBUF_ADDR	(0x70000000UL)
 	#define MM_OMXBUF_SIZE	(256 * 1024 * 1024)
@@ -177,5 +224,56 @@ static int validate_memory_map(void);
 #define MM_LOSSY_ENABLE_MASK		(0x80000000UL)  /* [31] */
 #define MM_LOSSY_SHARED_MEM_ADDR	(0x47FD7000UL)
 #define MM_LOSSY_SHARED_MEM_SIZE	(16 * sizeof(struct LOSSY_INFO))
+
+/* IPMMU (PMB mode) */
+#define IPMMUVC0_BASE		(0xFE6B0000)
+#define IPMMUVC1_BASE		(0xFE6F0000)
+#define IPMMUVP_BASE		(0xFE990000)
+#define IPMMUVI_BASE		(0xFEBD0000)
+
+#define IMPCTR_OFFSET		(0x200)
+#define IMPSTR_OFFSET		(0x208)
+#define IMPEAR_OFFSET		(0x20C)
+#define IMPMBAn_OFFSET(n)	(0x280 + 0x4  * n)
+#define IMPMBDn_OFFSET(n)	(0x2C0 + 0x4  * n)
+#define IMUCTRn_OFFSET(n)	(0x300 + 0x10 * n)
+
+#define REG_SIZE		(4)
+#define IMPCTR_VAL		(0x00000001)
+#define IMUCTR_VAL		(0x00000081)
+#define IMPMBAn_VAL		(0x00000100)
+#define IMPMBDn_VAL		(0x00000180)
+
+#define PMB_LEGACY_MEM_ACCESS
+/* #define PMB_SHADOW_MEM_ACCESS */
+/* #define PMB_40BIT_MEM_ACCESS */
+
+#define CMA_128MB_P1_VIRT	(0x58000000)
+#define CMA_128MB_P2_VIRT	(0x60000000)
+#define CMA_128MB_P3_VIRT	(0x68000000)
+#define MMP_CMA_128MB_P1_VIRT	(0x70000000)
+#define MMP_CMA_128MB_P2_VIRT	(0x78000000)
+
+#ifdef PMB_LEGACY_MEM_ACCESS
+#define CMA_128MB_P1_PHYS	(0x58000000)
+#define CMA_128MB_P2_PHYS	(0x60000000)
+#define CMA_128MB_P3_PHYS	(0x68000000)
+#define MMP_CMA_128MB_P1_PHYS	(0x70000000)
+#define MMP_CMA_128MB_P2_PHYS	(0x78000000)
+#endif
+#ifdef PMB_SHADOW_MEM_ACCESS
+#define CMA_128MB_P1_PHYS	(0x18040000)
+#define CMA_128MB_P2_PHYS	(0x20040000)
+#define CMA_128MB_P3_PHYS	(0x28040000)
+#define MMP_CMA_128MB_P1_PHYS	(0x30040000)
+#define MMP_CMA_128MB_P2_PHYS	(0x38040000)
+#endif
+#ifdef PMB_40BIT_MEM_ACCESS
+#define CMA_128MB_P1_PHYS	(0x58000000)
+#define CMA_128MB_P2_PHYS	(0x60000000)
+#define CMA_128MB_P3_PHYS	(0x68000000)
+#define MMP_CMA_128MB_P1_PHYS	(0x30050000)
+#define MMP_CMA_128MB_P2_PHYS	(0x38050000)
+#endif
 
 #endif	/* __MMNGR_PRIVATE_H__ */

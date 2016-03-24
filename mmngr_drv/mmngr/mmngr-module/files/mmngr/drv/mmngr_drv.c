@@ -91,6 +91,108 @@ static bool			have_lossy_entries;
 static bool			is_sspbuf_valid = false;
 #endif
 
+/* IPMMU (PMB mode) */
+static struct phys2virt_map p2v_map[] = {
+	{CMA_128MB_P1_VIRT,	CMA_128MB_P1_PHYS},
+	{CMA_128MB_P2_VIRT,	CMA_128MB_P2_PHYS},
+	{CMA_128MB_P3_VIRT,	CMA_128MB_P3_PHYS},
+	{MMP_CMA_128MB_P1_VIRT, MMP_CMA_128MB_P1_PHYS},
+	{MMP_CMA_128MB_P2_VIRT, MMP_CMA_128MB_P2_PHYS},
+};
+
+static struct hw_register ipmmu_ip_regs[] = {
+	{"IMPCTR",	IMPCTR_OFFSET},
+	{"IMPSTR",	IMPSTR_OFFSET},
+	{"IMPEAR",	IMPEAR_OFFSET},
+	{"IMPMBA0",	IMPMBAn_OFFSET(0)},
+	{"IMPMBD0",	IMPMBDn_OFFSET(0)},
+	{"IMPMBA1",	IMPMBAn_OFFSET(1)},
+	{"IMPMBD1",	IMPMBDn_OFFSET(1)},
+	{"IMPMBA2",	IMPMBAn_OFFSET(2)},
+	{"IMPMBD2",	IMPMBDn_OFFSET(2)},
+	{"IMPMBA3",	IMPMBAn_OFFSET(3)},
+	{"IMPMBD3",	IMPMBDn_OFFSET(3)},
+	{"IMPMBA4",	IMPMBAn_OFFSET(4)},
+	{"IMPMBD4",	IMPMBDn_OFFSET(4)},
+	/*
+	 * IMUCTRn_OFFSET(n) is not defined here
+	 * The register is calculated base on IP utlb_no value
+	 */
+};
+
+static struct ip_master ipmmuvc0_masters[] = {
+	{"FCP-CS", 0},
+};
+
+static struct rcar_ipmmu ipmmuvc0 = {
+	.ipmmu_name	= "IPMMUVC0",
+	.base_addr	= IPMMUVC0_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(ipmmuvc0_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= ipmmuvc0_masters,
+};
+
+static struct ip_master ipmmuvc1_masters[] = {
+	{"FCP-CI ch0",	4},
+	{"FCP-CI ch1",	4},
+};
+
+static struct rcar_ipmmu ipmmuvc1 = {
+	.ipmmu_name	= "IPMMUVC1",
+	.base_addr	= IPMMUVC0_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(ipmmuvc1_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= ipmmuvc1_masters,
+};
+
+static struct ip_master ipmmuvp_masters[] = {
+	{"FCP-F ch0",	0},
+	{"FCP-F ch1",	1},
+	{"FCP-F ch2",	2},
+	{"FCP-VB ch0",	5},
+	{"FCP-VB ch1",	7},
+	{"FCP-VI ch0",	8},
+	{"FCP-VI ch1",	9},
+	{"FCP-VI ch2", 10},
+};
+
+static struct rcar_ipmmu ipmmuvp = {
+	.ipmmu_name	= "IPMMUVP",
+	.base_addr	= IPMMUVP_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(ipmmuvp_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= ipmmuvp_masters,
+};
+
+static struct ip_master ipmmuvi_masters[] = {
+	{"FCP-VD ch0",	8},
+	{"FCP-VD ch1",	9},
+	{"FCP-VD ch2",	10},
+	{"FCP-VD ch3",	11},
+	{"HDMI ch0",	12},
+	{"HDMI ch1",	13},
+};
+
+static struct rcar_ipmmu ipmmuvi = {
+	.ipmmu_name	= "IPMMUVI",
+	.base_addr	= IPMMUVI_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(ipmmuvi_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= ipmmuvi_masters,
+};
+
+static struct rcar_ipmmu *rcar_gen3_ipmmu[] = {
+	&ipmmuvp,
+	&ipmmuvi,
+	&ipmmuvc0,
+	&ipmmuvc1,
+	NULL, /* End of list */
+};
+
 static int mm_ioc_alloc(struct device *mm_dev,
 			int __user *in,
 			struct MM_PARAM *out)
@@ -747,6 +849,189 @@ static int init_lossy_info(void)
 	return ret;
 }
 
+/* IPMMU (PMB mode) */
+static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
+{
+	int ret = 0;
+	unsigned int j, k;
+	phys_addr_t base_addr = ipmmu->base_addr;
+	unsigned int reg_count = ipmmu->reg_count;
+	unsigned int masters_count = ipmmu->masters_count;
+	struct hw_register *ipmmu_reg = ipmmu->ipmmu_reg;
+	struct ip_master *ip_masters = ipmmu->ip_masters;
+
+	if (handling == DO_IOREMAP) { /* ioremap */
+		/* IOREMAP Common registers in an IPMMU */
+		for (j = 0; j < reg_count; j++) {
+			ipmmu_reg[j].virt_addr = ioremap_nocache(base_addr +
+					ipmmu_reg[j].reg_offset, REG_SIZE);
+
+			if (!ipmmu_reg[j].virt_addr) {
+				ret = -1;
+				break;
+			}
+
+			pr_debug("%s: Register %s, offset 0x%x, virt_addr 0x%p\n",
+				__func__, ipmmu_reg[j].reg_name,
+				ipmmu_reg[j].reg_offset,
+				ipmmu_reg[j].virt_addr);
+		}
+
+		/* IOREMAP uTLB registers for each IP master */
+		for (j = 0; j < masters_count; j++) {
+			ip_masters[j].virt_addr = ioremap_nocache(base_addr +
+					IMUCTRn_OFFSET(ip_masters[j].utlb_no),
+					REG_SIZE);
+
+			if (!ip_masters[j].virt_addr) {
+				ret = -1;
+				break;
+			}
+
+			pr_debug("%s: Register %s, utlb_no 0x%x, virt_addr 0x%p\n",
+				__func__, ip_masters[j].ip_name,
+				ip_masters[j].utlb_no, ip_masters[j].virt_addr);
+		}
+
+	} else if (handling == DO_IOUNMAP) { /* iounmap*/
+		/* IOREMAP Common registers in an IPMMU */
+		for (j = 0; j < reg_count; j++) {
+			iounmap(ipmmu_reg[j].virt_addr);
+			ipmmu_reg[j].virt_addr = NULL;
+		}
+
+		/* IOUNMAP uTLB registers for each IP master */
+		for (j = 0; j < masters_count; j++) {
+			iounmap(ip_masters[j].virt_addr);
+			ip_masters[j].virt_addr = NULL;
+		}
+
+	} else if (handling == ENABLE_PMB) { /* Enable PMB of IPMMU */
+		for (j = 0; j < reg_count; j++) {
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMPCTR"))
+				break;
+		}
+
+		if (j < reg_count) /* Found IMPCTR */
+			iowrite32(IMPCTR_VAL | ioread32(ipmmu_reg[j].virt_addr),
+				ipmmu_reg[j].virt_addr);
+		else
+			ret = -1;
+
+	} else if (handling == ENABLE_UTLB) { /* Enable utlb for IP master */
+		for (j = 0; j < masters_count; j++)
+			iowrite32(IMUCTR_VAL, ip_masters[j].virt_addr);
+
+	} else if (handling == SET_PMB_AREA) { /* Enable PMB area for IPMMU */
+		for (j = 0; j < reg_count; j++) {
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMPMBA0"))
+				break;
+		}
+
+		for (k = 0; k < ARRAY_SIZE(p2v_map); k++) {
+			iowrite32(IMPMBAn_VAL | p2v_map[k].impmba,
+				ipmmu_reg[j].virt_addr);
+			iowrite32(IMPMBDn_VAL | p2v_map[k].impmbd,
+				ipmmu_reg[j+1].virt_addr);
+			j += 2; /* Move to next PMB entry */
+		}
+
+	} else if (handling == PRINT_PMB_DEBUG) { /* Print PMB status info. */
+		for (j = 0; j < reg_count; j++) {
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMPSTR"))
+				break;
+		}
+
+		pr_err("%s: IMPSTR(%08x), IMPEAR(%08x)\n", __func__,
+			ioread32(ipmmu_reg[j].virt_addr),
+			ioread32(ipmmu_reg[j+1].virt_addr));
+
+	} else { /* Invalid */
+		pr_info("%s: Invalid parameters\n", __func__);
+		ret = -1;
+	}
+
+	return ret;
+}
+
+/*
+ * Handle the ioremap/iounmap of IP registers
+ *   handling: Flag of processing
+ *     0: ioremap
+ *     1: iounmap
+ */
+static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling)
+{
+	struct rcar_ipmmu *working_ipmmu;
+	unsigned int i = 0;
+	unsigned int ret = 0;
+
+	while (ipmmu[i] != NULL) {
+		working_ipmmu = ipmmu[i];
+		ret = __handle_registers(working_ipmmu, handling);
+		i++;
+	}
+
+	return ret;
+}
+static int map_register(void)
+{
+	int ret = 0;
+
+	ret = handle_registers(rcar_gen3_ipmmu, DO_IOREMAP);
+
+	return ret;
+}
+
+static void unmap_register(void)
+{
+	handle_registers(rcar_gen3_ipmmu, DO_IOUNMAP);
+}
+
+static void enable_pmb(void)
+{
+	handle_registers(rcar_gen3_ipmmu, ENABLE_PMB);
+}
+
+static void enable_utlb(void)
+{
+	handle_registers(rcar_gen3_ipmmu, ENABLE_UTLB);
+}
+
+static void set_pmb_area(void)
+{
+	handle_registers(rcar_gen3_ipmmu, SET_PMB_AREA);
+}
+
+static void pmb_debuginfo(void)
+{
+	handle_registers(rcar_gen3_ipmmu, PRINT_PMB_DEBUG);
+}
+
+static int pmb_init(void)
+{
+	int			ret = 0;
+
+	ret = map_register();
+	if (ret != 0) {
+		pr_err("%s: map_register() NG\n", __func__);
+		return -1;
+	}
+
+	set_pmb_area();
+	enable_pmb();
+	enable_utlb();
+
+	return 0;
+}
+
+static void pmb_exit(void)
+{
+	pmb_debuginfo();
+
+	unmap_register();
+}
+
 static const struct file_operations fops = {
 	.owner		= THIS_MODULE,
 	.open		= open,
@@ -835,6 +1120,7 @@ static int mm_probe(struct platform_device *pdev)
 	p->mm_dev = dev;
 	mm_drvdata = p;
 
+	pmb_init();
 	spin_lock_init(&lock);
 
 	return 0;
@@ -843,6 +1129,8 @@ static int mm_probe(struct platform_device *pdev)
 static int mm_remove(struct platform_device *pdev)
 {
 	uint32_t i;
+
+	pmb_exit();
 
 	misc_deregister(&misc);
 
