@@ -87,6 +87,9 @@ static u64			mm_kernel_reserve_size;
 static u64			mm_lossybuf_addr;
 static u64			mm_lossybuf_size;
 static bool			have_lossy_entries;
+#ifdef MMNGR_SSP_ENABLE
+static bool			is_sspbuf_valid = false;
+#endif
 
 static int mm_ioc_alloc(struct device *mm_dev,
 			int __user *in,
@@ -274,7 +277,10 @@ static int mm_ioc_alloc_co_select(int __user *in, struct MM_PARAM *out)
 	}
 #else
 	else if (tmp.flag == MM_CARVEOUT_SSP)
+	if (is_sspbuf_valid)
 		ret = mm_ioc_alloc_co(&bm_ssp, in, out);
+	else
+		ret = -ENOMEM;
 #endif
 	else if ((tmp.flag & 0xF) == MM_CARVEOUT_LOSSY) {
 		ret = find_lossy_entry(tmp.flag, &entry);
@@ -376,9 +382,11 @@ static int close(struct inode *inode, struct file *file)
 		} else if ((p->flag == MM_CARVEOUT_SSP)
 		&& (p->phy_addr != 0)) {
 #ifdef MMNGR_SSP_ENABLE
+		if (is_sspbuf_valid) {
 			pr_err("MMD close carveout SSP\n");
 			pb = &bm_ssp;
 			mm_ioc_free_co(pb, p);
+		}
 #endif
 		} else if (((p->flag & 0xF) == MM_CARVEOUT_LOSSY)
 		&& (p->phy_addr != 0)) {
@@ -593,12 +601,15 @@ static int validate_memory_map(void)
 	}
 
 #ifdef MMNGR_SSP_ENABLE
-	if (mm_kernel_reserve_size < (MM_OMXBUF_SIZE + MM_SSPBUF_SIZE)) {
+	if (mm_kernel_reserve_size >= (MM_OMXBUF_SIZE + MM_SSPBUF_SIZE)) {
+		is_sspbuf_valid = true;
+	} else {
 		pr_warn("The total size (0x%x) of OMXBUF and SSPBUF is over "\
 			"the kernel reserved size (0x%llx) for Multimedia.\n",
 			MM_OMXBUF_SIZE + MM_SSPBUF_SIZE,
 			mm_kernel_reserve_size);
-		ret = -1;
+
+		is_sspbuf_valid = false;
 	}
 #endif
 	return ret;
@@ -768,11 +779,13 @@ static int mm_probe(struct platform_device *pdev)
 	}
 
 #ifdef MMNGR_SSP_ENABLE
-	ret = alloc_bm(&bm_ssp, MM_SSPBUF_ADDR, MM_SSPBUF_SIZE, MM_CO_ORDER);
-	if (ret) {
-		pr_err("MMD mm_probe ERROR\n");
-		return -1;
+	if (is_sspbuf_valid) {
+		ret = alloc_bm(&bm_ssp, MM_SSPBUF_ADDR, MM_SSPBUF_SIZE, MM_CO_ORDER);
+		if (ret) {
+			pr_err("MMD mm_probe ERROR\n");
+			return -1;
 	}
+    }
 #endif
 
 	ret = init_lossy_info();
@@ -822,7 +835,8 @@ static int mm_remove(struct platform_device *pdev)
 	misc_deregister(&misc);
 
 #ifdef MMNGR_SSP_ENABLE
-	free_bm(&bm_ssp);
+	if (is_sspbuf_valid)
+		free_bm(&bm_ssp);
 #endif
 
 	for (i=0; i < 16; i++) {
