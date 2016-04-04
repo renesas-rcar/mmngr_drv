@@ -602,7 +602,19 @@ static int validate_memory_map(void)
 
 #ifdef MMNGR_SSP_ENABLE
 	if (mm_kernel_reserve_size >= (MM_OMXBUF_SIZE + MM_SSPBUF_SIZE)) {
-		is_sspbuf_valid = true;
+		if ((MM_SSPBUF_ADDR >= mm_kernel_reserve_addr) &&
+		    (MM_SSPBUF_ADDR <= (mm_kernel_reserve_addr + mm_kernel_reserve_size
+					- MM_SSPBUF_SIZE))) {
+			is_sspbuf_valid = true;
+		} else {
+			pr_warn("The SSPBUF (0x%lx - 0x%lx) is out of range of"\
+				"the kernel reserved size (0x%llx - 0x%llx) for Multimedia.\n",
+				MM_SSPBUF_ADDR, MM_SSPBUF_ADDR + MM_SSPBUF_SIZE,
+				mm_kernel_reserve_addr,
+				mm_kernel_reserve_addr + mm_kernel_reserve_size);
+
+			is_sspbuf_valid = false;
+		}
 	} else {
 		pr_warn("The total size (0x%x) of OMXBUF and SSPBUF is over "\
 			"the kernel reserved size (0x%llx) for Multimedia.\n",
