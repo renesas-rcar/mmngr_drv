@@ -206,9 +206,17 @@ static void pmb_exit(void);
 static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling);
 static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
 
+/* #define PMB_LEGACY_MEM_ACCESS */
+/* #define PMB_SHADOW_MEM_ACCESS */
+#define PMB_40BIT_MEM_ACCESS
+
 #if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
+#ifdef PMB_40BIT_MEM_ACCESS
+	#define MM_OMXBUF_ADDR	(0x70000000UL)
+#else
 	#define MM_OMXBUF_ADDR	(0x70000000UL)
 	#define MM_OMXBUF_SIZE	(256 * 1024 * 1024)
+#endif
 #endif
 
 #ifdef MMNGR_SSP_ENABLE
@@ -246,10 +254,6 @@ static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
 #define IMUCTR_VAL		(0x00000081)
 #define IMPMBAn_VAL		(0x00000100)
 #define IMPMBDn_VAL		(0x00000180)
-
-/* #define PMB_LEGACY_MEM_ACCESS */
-/* #define PMB_SHADOW_MEM_ACCESS */
-#define PMB_40BIT_MEM_ACCESS
 
 #define CMA_128MB_P1_VIRT	(0x58000000)
 #define CMA_128MB_P2_VIRT	(0x60000000)

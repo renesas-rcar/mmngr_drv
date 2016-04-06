@@ -694,16 +694,30 @@ static int mmap(struct file *filp, struct vm_area_struct *vma)
 static int validate_memory_map(void)
 {
 	int ret = 0;
+#ifdef MMNGR_SSP_ENABLE
+	unsigned long buf_size;
+	char *buf_name;
+#endif
 
+#ifndef PMB_40BIT_MEM_ACCESS
 	if (mm_kernel_reserve_size < MM_OMXBUF_SIZE) {
 		pr_warn("The size (0x%x) of OMXBUF is over "\
 			"the kernel reserved size (0x%llx) for Multimedia.\n",
 			MM_OMXBUF_SIZE, mm_kernel_reserve_size);
 		ret = -1;
 	}
+#endif
 
 #ifdef MMNGR_SSP_ENABLE
-	if (mm_kernel_reserve_size >= (MM_OMXBUF_SIZE + MM_SSPBUF_SIZE)) {
+#ifndef PMB_40BIT_MEM_ACCESS
+	buf_size = MM_OMXBUF_SIZE + MM_SSPBUF_SIZE;
+	buf_name = "OMXBUF and SSPBUF";
+#else
+	buf_size = MM_SSPBUF_SIZE;
+	buf_name = "SSPBUF";
+#endif /* PMB_40BIT_MEM_ACCESS */
+
+	if (mm_kernel_reserve_size >= buf_size) {
 		if ((MM_SSPBUF_ADDR >= mm_kernel_reserve_addr) &&
 		    (MM_SSPBUF_ADDR <= (mm_kernel_reserve_addr + mm_kernel_reserve_size
 					- MM_SSPBUF_SIZE))) {
@@ -718,10 +732,9 @@ static int validate_memory_map(void)
 			is_sspbuf_valid = false;
 		}
 	} else {
-		pr_warn("The total size (0x%x) of OMXBUF and SSPBUF is over "\
+		pr_warn("The total size (0x%lx) of %s is over "\
 			"the kernel reserved size (0x%llx) for Multimedia.\n",
-			MM_OMXBUF_SIZE + MM_SSPBUF_SIZE,
-			mm_kernel_reserve_size);
+			buf_size, buf_name, mm_kernel_reserve_size);
 
 		is_sspbuf_valid = false;
 	}
@@ -1070,6 +1083,7 @@ static int mm_probe(struct platform_device *pdev)
 	phys_addr_t		phy_addr;
 	void			*pkernel_virt_addr;
 	struct device		*dev = &pdev->dev;
+	unsigned long		mm_omxbuf_size;
 
 	ret = parse_reserved_mem_dt();
 	if (ret) {
@@ -1083,7 +1097,16 @@ static int mm_probe(struct platform_device *pdev)
 		return -1;
 	}
 
-	ret = alloc_bm(&bm, MM_OMXBUF_ADDR, MM_OMXBUF_SIZE, MM_CO_ORDER);
+#ifndef PMB_40BIT_MEM_ACCESS
+	mm_omxbuf_size = MM_OMXBUF_SIZE;
+#else
+#ifndef MMNGR_SSP_ENABLE
+	mm_omxbuf_size = mm_kernel_reserve_size;
+#else
+	mm_omxbuf_size = mm_kernel_reserve_size - MM_SSPBUF_SIZE;
+#endif
+#endif
+	ret = alloc_bm(&bm, MM_OMXBUF_ADDR, mm_omxbuf_size, MM_CO_ORDER);
 	if (ret) {
 		pr_err("MMD mm_probe ERROR\n");
 		return -1;
