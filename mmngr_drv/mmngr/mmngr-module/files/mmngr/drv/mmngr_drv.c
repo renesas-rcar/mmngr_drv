@@ -1211,14 +1211,41 @@ static struct platform_driver mm_driver = {
 	.remove = mm_remove,
 };
 
+static int ipmmu_probe(struct platform_device *pdev)
+{
+	return 0;
+}
+
+static int ipmmu_remove(struct platform_device *pdev)
+{
+	return 0;
+}
+
+static const struct of_device_id ipmmu_of_match[] = {
+	{ .compatible = "renesas,ipmmu-pmb" },
+	{ },
+};
+
+static struct platform_driver ipmmu_driver = {
+	.driver = {
+		.name = DEVNAME "_ipmmu_drv",
+		.owner = THIS_MODULE,
+		.of_match_table = ipmmu_of_match,
+	},
+	.probe = ipmmu_probe,
+	.remove = ipmmu_remove,
+};
+
 static int mm_init(void)
 {
+	platform_driver_register(&ipmmu_driver);
 	return platform_driver_register(&mm_driver);
 }
 
 static void mm_exit(void)
 {
 	platform_driver_unregister(&mm_driver);
+	platform_driver_unregister(&ipmmu_driver);
 }
 
 module_init(mm_init);
