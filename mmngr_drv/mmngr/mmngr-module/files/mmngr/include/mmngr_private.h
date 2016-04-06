@@ -247,9 +247,9 @@ static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
 #define IMPMBAn_VAL		(0x00000100)
 #define IMPMBDn_VAL		(0x00000180)
 
-#define PMB_LEGACY_MEM_ACCESS
+/* #define PMB_LEGACY_MEM_ACCESS */
 /* #define PMB_SHADOW_MEM_ACCESS */
-/* #define PMB_40BIT_MEM_ACCESS */
+#define PMB_40BIT_MEM_ACCESS
 
 #define CMA_128MB_P1_VIRT	(0x58000000)
 #define CMA_128MB_P2_VIRT	(0x60000000)
