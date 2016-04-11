@@ -960,14 +960,20 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 
 	} else if (handling == PRINT_PMB_DEBUG) { /* Print PMB status info. */
 		for (j = 0; j < reg_count; j++) {
-			if (!strcmp(ipmmu_reg[j].reg_name, "IMPSTR"))
-				break;
+			if (j == 0)
+				pr_debug("---\n"); /* delimiter */
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMPSTR") ||
+			    !strcmp(ipmmu_reg[j].reg_name, "IMPEAR"))
+				pr_err("%s: %s(%08x)\n", ipmmu->ipmmu_name,
+					ipmmu_reg[j].reg_name,
+					ioread32(virt_addr +
+						ipmmu_reg[j].reg_offset));
+			else
+				pr_debug("%s: %s(%08x)\n", ipmmu->ipmmu_name,
+					  ipmmu_reg[j].reg_name,
+					  ioread32(virt_addr +
+						ipmmu_reg[j].reg_offset));
 		}
-
-		pr_err("%s: IMPSTR(%08x), IMPEAR(%08x)\n", ipmmu->ipmmu_name,
-			ioread32(virt_addr + ipmmu_reg[j].reg_offset),
-			ioread32(virt_addr + ipmmu_reg[j+1].reg_offset));
-
 	} else { /* Invalid */
 		pr_info("%s: Invalid parameters\n", __func__);
 		ret = -1;
