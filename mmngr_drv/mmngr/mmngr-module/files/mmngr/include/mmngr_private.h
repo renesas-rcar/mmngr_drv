@@ -212,6 +212,11 @@ static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
 
 #if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
 #ifdef PMB_40BIT_MEM_ACCESS
+/*
+ * When IPMMU is enabled,
+ * 0x7000_0000 is considered as virtual address of IPMMU,
+ * 0x6_3000_0000 is the actual physical address of IPMMU.
+ */
 	#define MM_OMXBUF_ADDR	(0x70000000UL)
 #else
 	#define MM_OMXBUF_ADDR	(0x70000000UL)
