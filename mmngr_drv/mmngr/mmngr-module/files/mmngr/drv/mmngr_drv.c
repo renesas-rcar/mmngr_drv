@@ -1148,9 +1148,9 @@ static int mm_probe(struct platform_device *pdev)
 	pr_debug("MMD reserve area from 0x%pK to 0x%pK at virtual\n",
 		pkernel_virt_addr,
 		pkernel_virt_addr + mm_kernel_reserve_size - 1);
-	pr_debug("MMD reserve area from 0x%08x to 0x%llx at physical\n",
-		(unsigned int)phy_addr,
-		(unsigned int)phy_addr + mm_kernel_reserve_size - 1);
+	pr_debug("MMD reserve area from 0x%lx to 0x%llx at physical\n",
+		(unsigned long)phy_addr,
+		(unsigned long)phy_addr + mm_kernel_reserve_size - 1);
 
 	/* Handler for mem alloc in 1st CMA area */
 	dev->cma_area = NULL;
