@@ -175,7 +175,7 @@ static int validate_memory_map(void);
 #define MM_LOSSY_ADDR_MASK		(0x0003FFFFUL)  /* [17:0] */
 #define MM_LOSSY_FMT_MASK		(0x60000000UL)  /* [30:29] */
 #define MM_LOSSY_ENABLE_MASK		(0x80000000UL)  /* [31] */
-#define MM_LOSSY_SHARED_MEM_ADDR	(0x47F00000UL)
+#define MM_LOSSY_SHARED_MEM_ADDR	(0x47FD7000UL)
 #define MM_LOSSY_SHARED_MEM_SIZE	(16 * sizeof(struct LOSSY_INFO))
 
 #endif	/* __MMNGR_PRIVATE_H__ */
