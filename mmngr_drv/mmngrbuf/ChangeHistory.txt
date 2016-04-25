@@ -1,2 +1,4 @@
 MMNGRBUF v0.1
 	1. Initial Gen3 support.
+MMNGRBUF v0.2
+	1. Change MMNGRBUF driver into a DT-compatible driver.
