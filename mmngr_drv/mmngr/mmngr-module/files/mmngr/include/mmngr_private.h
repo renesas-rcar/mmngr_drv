@@ -157,13 +157,13 @@ static int _parse_reserved_mem_dt(char *dt_path,
 static int parse_reserved_mem_dt(void);
 static int validate_memory_map(void);
 
-#ifdef MMNGR_SALVATORX
+#if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
 	#define MM_OMXBUF_ADDR	(0x70000000UL)
 	#define MM_OMXBUF_SIZE	(256 * 1024 * 1024)
 #endif
 
 #ifdef MMNGR_SSP_ENABLE
-#ifdef MMNGR_SALVATORX
+#if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
 #define MM_SSPBUF_ADDR	(0x53000000UL)
 #define MM_SSPBUF_SIZE	(16 * 1024 * 1024)
 #endif
