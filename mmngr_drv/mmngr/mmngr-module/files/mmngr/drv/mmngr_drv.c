@@ -80,7 +80,7 @@
 static spinlock_t		lock;
 static struct BM		bm;
 static struct BM		bm_ssp;
-struct LOSSY_DATA		lossy_entries[16];
+static struct LOSSY_DATA	lossy_entries[16];
 static struct MM_DRVDATA	*mm_drvdata;
 static u64			mm_kernel_reserve_addr;
 static u64			mm_kernel_reserve_size;
@@ -691,7 +691,7 @@ static int init_lossy_info(void)
 	if (mem == NULL)
 		return -1;
 
-	p = (struct LOSSY_INFO *)mem;
+	p = (struct LOSSY_INFO __force *)mem;
 
 	for (i = 0; i < 16; i++) {
 		/* Validate the entry */
@@ -831,7 +831,7 @@ static int mm_probe(struct platform_device *pdev)
 		(unsigned int)phy_addr + mm_kernel_reserve_size - 1);
 
 	/* Handler for mem alloc in 1st CMA area */
-	dev->cma_area = 0;
+	dev->cma_area = NULL;
 	p->mm_dev = dev;
 	mm_drvdata = p;
 
