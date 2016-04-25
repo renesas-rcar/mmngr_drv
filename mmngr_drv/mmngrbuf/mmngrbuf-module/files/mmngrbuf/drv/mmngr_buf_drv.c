@@ -70,6 +70,8 @@
 
 #include "mmngr_buf_private.h"
 
+static struct MM_BUF_DRVDATA	*mm_buf_drvdata;
+
 static int open(struct inode *inode, struct file *file)
 {
 	struct MM_BUF_PRIVATE *priv;
@@ -398,7 +400,8 @@ static int mm_ioc_import_start(int __user *arg, struct MM_BUF_PRIVATE *priv)
 	if (IS_ERR(priv->dma_buf))
 		goto exit;
 
-	priv->attach = dma_buf_attach(priv->dma_buf, misc.this_device);
+	priv->attach = dma_buf_attach(priv->dma_buf,
+				mm_buf_drvdata->mm_buf_dev);
 	if (IS_ERR(priv->attach))
 		goto exit;
 
@@ -438,6 +441,15 @@ static int mm_ioc_import_end(struct MM_BUF_PRIVATE *priv)
 
 static int mm_probe(struct platform_device *pdev)
 {
+	struct MM_BUF_DRVDATA	*p = NULL;
+	struct device		*dev = &pdev->dev;
+
+	p = kzalloc(sizeof(struct MM_BUF_DRVDATA), GFP_KERNEL);
+	if (p == NULL)
+		return -1;
+	p->mm_buf_dev = dev;
+	mm_buf_drvdata = p;
+
 	misc_register(&misc);
 
 	return 0;
@@ -446,6 +458,8 @@ static int mm_probe(struct platform_device *pdev)
 static int mm_remove(struct platform_device *pdev)
 {
 	misc_deregister(&misc);
+
+	kfree(mm_buf_drvdata);
 
 	return 0;
 }

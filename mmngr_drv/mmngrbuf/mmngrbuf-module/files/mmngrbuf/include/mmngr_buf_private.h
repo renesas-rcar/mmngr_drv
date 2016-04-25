@@ -1,7 +1,7 @@
 /*************************************************************************/ /*
  MMNGR
 
- Copyright (C) 2015 Renesas Electronics Corporation
+ Copyright (C) 2015-2016 Renesas Electronics Corporation
 
  License        Dual MIT/GPLv2
 
@@ -62,6 +62,10 @@
 #define __MMNGR_BUF_PRIVATE_H__
 
 #define DEVFILE "/dev/rgnmmbuf"
+
+struct MM_BUF_DRVDATA {
+	struct device *mm_buf_dev;
+};
 
 struct MM_BUF_PARAM {
 	size_t		size;
