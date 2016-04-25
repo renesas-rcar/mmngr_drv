@@ -9,3 +9,7 @@ MMNGR v0.3
 
 MMNGR v0.4
 	1. Add support for Lossy Decompression feature.
+
+MMNGR v0.5
+	1. Add support for Kriek board.
+	2. Fix sparse warning messages.
