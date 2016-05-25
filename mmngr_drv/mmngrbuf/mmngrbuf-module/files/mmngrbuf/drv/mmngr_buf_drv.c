@@ -265,16 +265,16 @@ static void dmabuf_release(struct dma_buf *buf)
 
 }
 
-static int dmabuf_begin_cpu_access(struct dma_buf *buf, size_t size,
-	size_t length, enum dma_data_direction direction)
+static int dmabuf_begin_cpu_access(struct dma_buf *buf,
+	enum dma_data_direction direction)
 {
 	return 0;
 }
 
-static void dmabuf_end_cpu_access(struct dma_buf *buf, size_t size,
-	size_t length, enum dma_data_direction direction)
+static int dmabuf_end_cpu_access(struct dma_buf *buf,
+	enum dma_data_direction direction)
 {
-
+	return 0;
 }
 
 static void *dmabuf_kmap_atomic(struct dma_buf *buf, unsigned long page)
