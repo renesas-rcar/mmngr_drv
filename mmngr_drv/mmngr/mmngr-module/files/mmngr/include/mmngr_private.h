@@ -146,6 +146,12 @@ struct phys2virt_map {
 	unsigned int impmbd;
 };
 
+struct pmb_table_map {
+	unsigned long table_size;
+	unsigned int multiple_of_16;
+	unsigned int table_count;
+};
+
 struct rcar_ipmmu {
 	char *ipmmu_name;
 	unsigned int base_addr;
@@ -247,18 +253,14 @@ static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
 #define IMPMBAn_VAL		(0x00000100)
 #define IMPMBDn_VAL		(0x00000180)
 
-/* IPMMU virtual address */
-#define CMA_128MB_P1_VIRT	(0x58000000)
-#define CMA_128MB_P2_VIRT	(0x60000000)
-#define CMA_128MB_P3_VIRT	(0x68000000)
-#define MMP_CMA_128MB_P1_VIRT	(0x70000000)
-#define MMP_CMA_128MB_P2_VIRT	(0x78000000)
+#define LOWER_PPN_MASK		(0x00FF000000UL)
+#define UPPER_PPN_MASK		(0xFF00000000UL)
+#define IMPMBA_VALUE(virt_addr)	(virt_addr)
+#define IMPMBD_VALUE(phys_addr) ((phys_addr & LOWER_PPN_MASK) \
+				| ((phys_addr & UPPER_PPN_MASK) > 16))
 
-/* IPMMU physical address */
-#define CMA_128MB_P1_PHYS	(0x58000000)
-#define CMA_128MB_P2_PHYS	(0x60000000)
-#define CMA_128MB_P3_PHYS	(0x68000000)
-#define MMP_CMA_128MB_P1_PHYS	(0x70000000)
-#define MMP_CMA_128MB_P2_PHYS	(0x78000000)
+/* IPMMU virtual address */
+#define CMA_1ST_VIRT_BASE_ADDR	(mm_kernel_reserve_addr)
+#define CMA_2ND_VIRT_BASE_ADDR	(0xC0000000)
 
 #endif	/* __MMNGR_PRIVATE_H__ */

@@ -92,12 +92,13 @@ static bool			is_sspbuf_valid = false;
 #endif
 
 /* IPMMU (PMB mode) */
-static struct phys2virt_map p2v_map[] = {
-	{CMA_128MB_P1_VIRT,	CMA_128MB_P1_PHYS},
-	{CMA_128MB_P2_VIRT,	CMA_128MB_P2_PHYS},
-	{CMA_128MB_P3_VIRT,	CMA_128MB_P3_PHYS},
-	{MMP_CMA_128MB_P1_VIRT, MMP_CMA_128MB_P1_PHYS},
-	{MMP_CMA_128MB_P2_VIRT, MMP_CMA_128MB_P2_PHYS},
+static struct phys2virt_map *p2v_map;
+
+static struct pmb_table_map pmb_table_mapping[] = {
+	{0x20000000,	32, 0}, /* 512MB table */
+	{0x08000000,	 8, 0}, /* 128MB table */
+	{0x04000000,	 4, 0}, /*  64MB table */
+	{0x01000000,	 1, 0}, /*  16MB table */
 };
 
 static struct hw_register ipmmu_ip_regs[] = {
@@ -734,6 +735,94 @@ static int _parse_reserved_mem_dt(char *dt_path,
 	return 0;
 }
 
+static int pmb_get_table_count(u64 size, unsigned int *table_count,
+				char *dt_path)
+{
+	int ret = 0;
+	unsigned int i, count, subtract, mult_of_16, size_in_MB;
+
+	size_in_MB = size / (1024 * 1024);
+
+	if (size % 16) {
+		pr_warn("Reserved area %s (%dMB) is not multiple of 16MB",
+						dt_path, size_in_MB);
+		return -1;
+	}
+
+	mult_of_16 = size / 16;
+
+	i = 0;
+	count = 0;
+	while (mult_of_16 > 0) {
+		subtract = mult_of_16 - pmb_table_mapping[i].multiple_of_16;
+
+		if (subtract >= 0) {
+			count++;
+			pmb_table_mapping[i].table_count++;
+			mult_of_16 = subtract;
+		} else {
+			i++;
+		}
+	}
+
+	if (count > 16) {
+		pr_err("Could not support %d PMB tables. 16 is maximum.",
+				count);
+		ret = -1;
+	}
+
+	*table_count = count;
+
+	return ret;
+}
+
+static int pmb_update_table_info(struct phys2virt_map *p2v_map,
+			u64 phys_addr, unsigned int virt_addr)
+{
+	int ret = 0;
+	unsigned int i, j, table_count, table_size;
+	u64 tmp_phys_addr, tmp_virt_addr;
+
+	tmp_phys_addr = phys_addr;
+	tmp_virt_addr = virt_addr;
+
+	for (i = 0; i < ARRAY_SIZE(pmb_table_mapping); i++) {
+		table_count = pmb_table_mapping[i].table_count;
+		table_size = pmb_table_mapping[i].table_size;
+
+		for (j = 0; j < table_count; j++) {
+			tmp_phys_addr += table_size * j;
+			tmp_virt_addr += table_size * j;
+
+			p2v_map[i].impmba = IMPMBA_VALUE(tmp_virt_addr);
+			p2v_map[i].impmbd = IMPMBD_VALUE(tmp_phys_addr);
+		}
+	}
+
+	return ret;
+}
+
+static int pmb_create_phys2virt_map(char *dt_path,
+				u64 phys_addr, u64 size)
+{
+	int ret = 0;
+	unsigned int table_count, virt_addr;
+
+	if (!strcmp(dt_path, "/reserved-memory/linux,multimedia"))
+		virt_addr = CMA_2ND_VIRT_BASE_ADDR;
+
+	ret = pmb_get_table_count(size, &table_count, dt_path);
+	if (ret)
+		return ret;
+
+	p2v_map = kzalloc((table_count * sizeof(struct phys2virt_map)),
+				GFP_KERNEL);
+
+	ret = pmb_update_table_info(p2v_map, phys_addr, virt_addr);
+
+	return ret;
+}
+
 static int parse_reserved_mem_dt(void)
 {
 	int ret = 0;
@@ -907,7 +996,8 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 				break;
 		}
 
-		for (k = 0; k < ARRAY_SIZE(p2v_map); k++) {
+		for (k = 0; k < (sizeof(p2v_map)/sizeof(struct phys2virt_map));
+				k++) {
 			iowrite32(IMPMBAn_VAL | p2v_map[k].impmba,
 				virt_addr + ipmmu_reg[j].reg_offset);
 			iowrite32(IMPMBDn_VAL | p2v_map[k].impmbd,
@@ -921,7 +1011,8 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 				break;
 		}
 
-		for (k = 0; k < ARRAY_SIZE(p2v_map); k++) {
+		for (k = 0; k < (sizeof(p2v_map)/sizeof(struct phys2virt_map));
+				k++) {
 			iowrite32(0x0, virt_addr + ipmmu_reg[j].reg_offset);
 			iowrite32(0x0, virt_addr + ipmmu_reg[j+1].reg_offset);
 			j += 2; /* Move to next PMB entry */
@@ -1128,6 +1219,13 @@ static int mm_probe(struct platform_device *pdev)
 	p->mm_dev = dev;
 	mm_drvdata = p;
 
+	ret = pmb_create_phys2virt_map(
+			"/reserved-memory/linux,multimedia",
+			mm_kernel_reserve_addr, mm_kernel_reserve_size);
+	if (ret) {
+		pr_err("MMD mm_init ERROR\n");
+		return -1;
+	}
 	pmb_init();
 	spin_lock_init(&lock);
 
