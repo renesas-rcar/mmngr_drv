@@ -151,11 +151,6 @@ static struct ip_master ipmmuvp_masters[] = {
 	{"FCP-F ch0",	0},
 	{"FCP-F ch1",	1},
 	{"FCP-F ch2",	2},
-	{"FCP-VB ch0",	5},
-	{"FCP-VB ch1",	7},
-	{"FCP-VI ch0",	8},
-	{"FCP-VI ch1",	9},
-	{"FCP-VI ch2", 10},
 };
 
 static struct rcar_ipmmu ipmmuvp = {
@@ -167,27 +162,8 @@ static struct rcar_ipmmu ipmmuvp = {
 	.ip_masters	= ipmmuvp_masters,
 };
 
-static struct ip_master ipmmuvi_masters[] = {
-	{"FCP-VD ch0",	8},
-	{"FCP-VD ch1",	9},
-	{"FCP-VD ch2",	10},
-	{"FCP-VD ch3",	11},
-	{"HDMI ch0",	12},
-	{"HDMI ch1",	13},
-};
-
-static struct rcar_ipmmu ipmmuvi = {
-	.ipmmu_name	= "IPMMUVI",
-	.base_addr	= IPMMUVI_BASE,
-	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
-	.masters_count	= ARRAY_SIZE(ipmmuvi_masters),
-	.ipmmu_reg	= ipmmu_ip_regs,
-	.ip_masters	= ipmmuvi_masters,
-};
-
 static struct rcar_ipmmu *rcar_gen3_ipmmu[] = {
 	&ipmmuvp,
-	&ipmmuvi,
 	&ipmmuvc0,
 	&ipmmuvc1,
 	NULL, /* End of list */
