@@ -699,23 +699,16 @@ static int validate_memory_map(void)
 	char *buf_name;
 #endif
 
-#ifndef PMB_40BIT_MEM_ACCESS
 	if (mm_kernel_reserve_size < MM_OMXBUF_SIZE) {
 		pr_warn("The size (0x%x) of OMXBUF is over "\
 			"the kernel reserved size (0x%llx) for Multimedia.\n",
 			MM_OMXBUF_SIZE, mm_kernel_reserve_size);
 		ret = -1;
 	}
-#endif
 
 #ifdef MMNGR_SSP_ENABLE
-#ifndef PMB_40BIT_MEM_ACCESS
 	buf_size = MM_OMXBUF_SIZE + MM_SSPBUF_SIZE;
 	buf_name = "OMXBUF and SSPBUF";
-#else
-	buf_size = MM_SSPBUF_SIZE;
-	buf_name = "SSPBUF";
-#endif /* PMB_40BIT_MEM_ACCESS */
 
 	if (mm_kernel_reserve_size >= buf_size) {
 		if ((MM_SSPBUF_ADDR >= mm_kernel_reserve_addr) &&
@@ -1103,14 +1096,10 @@ static int mm_probe(struct platform_device *pdev)
 		return -1;
 	}
 
-#ifndef PMB_40BIT_MEM_ACCESS
-	mm_omxbuf_size = MM_OMXBUF_SIZE;
-#else
 #ifndef MMNGR_SSP_ENABLE
 	mm_omxbuf_size = mm_kernel_reserve_size;
 #else
 	mm_omxbuf_size = mm_kernel_reserve_size - MM_SSPBUF_SIZE;
-#endif
 #endif
 	ret = alloc_bm(&bm, MM_OMXBUF_ADDR, mm_omxbuf_size, MM_CO_ORDER);
 	if (ret) {

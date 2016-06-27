@@ -206,22 +206,9 @@ static void pmb_exit(void);
 static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling);
 static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
 
-/* #define PMB_LEGACY_MEM_ACCESS */
-/* #define PMB_SHADOW_MEM_ACCESS */
-#define PMB_40BIT_MEM_ACCESS
-
 #if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
-#ifdef PMB_40BIT_MEM_ACCESS
-/*
- * When IPMMU is enabled,
- * 0x7000_0000 is considered as virtual address of IPMMU,
- * 0x6_3000_0000 is the actual physical address of IPMMU.
- */
-	#define MM_OMXBUF_ADDR	(0x70000000UL)
-#else
 	#define MM_OMXBUF_ADDR	(0x70000000UL)
 	#define MM_OMXBUF_SIZE	(256 * 1024 * 1024)
-#endif
 #endif
 
 #ifdef MMNGR_SSP_ENABLE
@@ -260,32 +247,18 @@ static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
 #define IMPMBAn_VAL		(0x00000100)
 #define IMPMBDn_VAL		(0x00000180)
 
+/* IPMMU virtual address */
 #define CMA_128MB_P1_VIRT	(0x58000000)
 #define CMA_128MB_P2_VIRT	(0x60000000)
 #define CMA_128MB_P3_VIRT	(0x68000000)
 #define MMP_CMA_128MB_P1_VIRT	(0x70000000)
 #define MMP_CMA_128MB_P2_VIRT	(0x78000000)
 
-#ifdef PMB_LEGACY_MEM_ACCESS
+/* IPMMU physical address */
 #define CMA_128MB_P1_PHYS	(0x58000000)
 #define CMA_128MB_P2_PHYS	(0x60000000)
 #define CMA_128MB_P3_PHYS	(0x68000000)
 #define MMP_CMA_128MB_P1_PHYS	(0x70000000)
 #define MMP_CMA_128MB_P2_PHYS	(0x78000000)
-#endif
-#ifdef PMB_SHADOW_MEM_ACCESS
-#define CMA_128MB_P1_PHYS	(0x18040000)
-#define CMA_128MB_P2_PHYS	(0x20040000)
-#define CMA_128MB_P3_PHYS	(0x28040000)
-#define MMP_CMA_128MB_P1_PHYS	(0x30040000)
-#define MMP_CMA_128MB_P2_PHYS	(0x38040000)
-#endif
-#ifdef PMB_40BIT_MEM_ACCESS
-#define CMA_128MB_P1_PHYS	(0x58000000)
-#define CMA_128MB_P2_PHYS	(0x60000000)
-#define CMA_128MB_P3_PHYS	(0x68000000)
-#define MMP_CMA_128MB_P1_PHYS	(0x30060000)
-#define MMP_CMA_128MB_P2_PHYS	(0x38060000)
-#endif
 
 #endif	/* __MMNGR_PRIVATE_H__ */
