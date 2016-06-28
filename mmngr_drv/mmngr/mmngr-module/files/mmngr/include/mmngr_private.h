@@ -260,7 +260,7 @@ static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
 				| ((phys_addr & UPPER_PPN_MASK) > 16))
 
 /* IPMMU virtual address */
-#define CMA_1ST_VIRT_BASE_ADDR	(mm_kernel_reserve_addr)
+#define CMA_1ST_VIRT_BASE_ADDR	(mm_common_reserve_addr)
 #define CMA_2ND_VIRT_BASE_ADDR	(0xC0000000)
 
 #endif	/* __MMNGR_PRIVATE_H__ */
