@@ -225,6 +225,10 @@ static int validate_memory_map(void);
 #define MM_LOSSY_SHARED_MEM_ADDR	(0x47FD7000UL)
 #define MM_LOSSY_SHARED_MEM_SIZE	(16 * sizeof(struct LOSSY_INFO))
 
+#if defined(MMNGR_SSP_ENABLE) && defined(MMNGR_IPMMU_PMB_ENABLE)
+#error "Have not support IPMMU(PMB) for SSPBUF yet"
+#endif
+
 #ifdef MMNGR_IPMMU_PMB_ENABLE
 /* IPMMU (PMB mode) */
 static int map_register(void);
