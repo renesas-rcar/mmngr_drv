@@ -98,27 +98,7 @@ struct LOSSY_DATA {
 	struct BM *bm_lossy;
 };
 
-extern struct cma *rcar_gen3_dma_contiguous;
-
-#define MM_IOC_MAGIC 'm'
-#define MM_IOC_ALLOC	_IOWR(MM_IOC_MAGIC, 0, struct MM_PARAM)
-#define MM_IOC_FREE	_IOWR(MM_IOC_MAGIC, 1, struct MM_PARAM)
-#define MM_IOC_SET	_IOWR(MM_IOC_MAGIC, 2, struct MM_PARAM)
-#define MM_IOC_GET	_IOWR(MM_IOC_MAGIC, 3, struct MM_PARAM)
-#define MM_IOC_ALLOC_CO	_IOWR(MM_IOC_MAGIC, 4, struct MM_PARAM)
-#define MM_IOC_FREE_CO	_IOWR(MM_IOC_MAGIC, 5, struct MM_PARAM)
-#define MM_IOC_SHARE	_IOWR(MM_IOC_MAGIC, 6, struct MM_PARAM)
-
-#ifdef CONFIG_COMPAT
-struct COMPAT_MM_PARAM {
-	compat_size_t	size;
-	compat_u64	phy_addr;
-	compat_uint_t	hard_addr;
-	compat_ulong_t	user_virt_addr;
-	compat_ulong_t	kernel_virt_addr;
-	compat_uint_t	flag;
-};
-
+#ifdef MMNGR_IPMMU_PMB_ENABLE
 enum {
 	DO_IOREMAP,
 	DO_IOUNMAP,
@@ -161,6 +141,28 @@ struct rcar_ipmmu {
 	struct hw_register *ipmmu_reg;
 	struct ip_master *ip_masters;
 };
+#endif
+
+extern struct cma *rcar_gen3_dma_contiguous;
+
+#define MM_IOC_MAGIC 'm'
+#define MM_IOC_ALLOC	_IOWR(MM_IOC_MAGIC, 0, struct MM_PARAM)
+#define MM_IOC_FREE	_IOWR(MM_IOC_MAGIC, 1, struct MM_PARAM)
+#define MM_IOC_SET	_IOWR(MM_IOC_MAGIC, 2, struct MM_PARAM)
+#define MM_IOC_GET	_IOWR(MM_IOC_MAGIC, 3, struct MM_PARAM)
+#define MM_IOC_ALLOC_CO	_IOWR(MM_IOC_MAGIC, 4, struct MM_PARAM)
+#define MM_IOC_FREE_CO	_IOWR(MM_IOC_MAGIC, 5, struct MM_PARAM)
+#define MM_IOC_SHARE	_IOWR(MM_IOC_MAGIC, 6, struct MM_PARAM)
+
+#ifdef CONFIG_COMPAT
+struct COMPAT_MM_PARAM {
+	compat_size_t	size;
+	compat_u64	phy_addr;
+	compat_uint_t	hard_addr;
+	compat_ulong_t	user_virt_addr;
+	compat_ulong_t	kernel_virt_addr;
+	compat_uint_t	flag;
+};
 
 #define COMPAT_MM_IOC_ALLOC	_IOWR(MM_IOC_MAGIC, 0, struct COMPAT_MM_PARAM)
 #define COMPAT_MM_IOC_FREE	_IOWR(MM_IOC_MAGIC, 1, struct COMPAT_MM_PARAM)
@@ -198,8 +200,32 @@ static int find_lossy_entry(unsigned int flag, int *entry);
 static int _parse_reserved_mem_dt(char *dt_path,
 			u64 *addr, u64 *size);
 static int parse_reserved_mem_dt(void);
+#ifdef MMNGR_IPMMU_PMB_DISABLE
 static int validate_memory_map(void);
+#endif
 
+#if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
+#define MM_OMXBUF_ADDR		(0x70000000UL)
+#define MM_OMXBUF_SIZE		(256 * 1024 * 1024)
+#endif
+
+#define	MM_CO_ORDER		(12)
+
+#ifdef MMNGR_SSP_ENABLE
+#if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
+#define MM_SSPBUF_ADDR		(0x53000000UL)
+#define MM_SSPBUF_SIZE		(16 * 1024 * 1024)
+#endif
+#endif
+
+#define MM_LOSSY_INFO_MAGIC		(0x12345678UL)
+#define MM_LOSSY_ADDR_MASK		(0x0003FFFFUL)  /* [17:0] */
+#define MM_LOSSY_FMT_MASK		(0x60000000UL)  /* [30:29] */
+#define MM_LOSSY_ENABLE_MASK		(0x80000000UL)  /* [31] */
+#define MM_LOSSY_SHARED_MEM_ADDR	(0x47FD7000UL)
+#define MM_LOSSY_SHARED_MEM_SIZE	(16 * sizeof(struct LOSSY_INFO))
+
+#ifdef MMNGR_IPMMU_PMB_ENABLE
 /* IPMMU (PMB mode) */
 static int map_register(void);
 static void unmap_register(void);
@@ -212,28 +238,6 @@ static void pmb_exit(void);
 static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling);
 static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
 
-#if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
-	#define MM_OMXBUF_ADDR	(0x70000000UL)
-	#define MM_OMXBUF_SIZE	(256 * 1024 * 1024)
-#endif
-
-#ifdef MMNGR_SSP_ENABLE
-#if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
-#define MM_SSPBUF_ADDR	(0x53000000UL)
-#define MM_SSPBUF_SIZE	(16 * 1024 * 1024)
-#endif
-#endif
-
-#define	MM_CO_ORDER		(12)
-
-#define MM_LOSSY_INFO_MAGIC		(0x12345678UL)
-#define MM_LOSSY_ADDR_MASK		(0x0003FFFFUL)  /* [17:0] */
-#define MM_LOSSY_FMT_MASK		(0x60000000UL)  /* [30:29] */
-#define MM_LOSSY_ENABLE_MASK		(0x80000000UL)  /* [31] */
-#define MM_LOSSY_SHARED_MEM_ADDR	(0x47FD7000UL)
-#define MM_LOSSY_SHARED_MEM_SIZE	(16 * sizeof(struct LOSSY_INFO))
-
-/* IPMMU (PMB mode) */
 #define IPMMUVC0_BASE		(0xFE6B0000)
 #define IPMMUVC1_BASE		(0xFE6F0000)
 #define IPMMUVP_BASE		(0xFE990000)
@@ -262,5 +266,6 @@ static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
 /* IPMMU virtual address */
 #define CMA_1ST_VIRT_BASE_ADDR	(mm_common_reserve_addr)
 #define CMA_2ND_VIRT_BASE_ADDR	(0xC0000000)
+#endif /* MMNGR_IPMMU_MMU_ENABLE */
 
 #endif	/* __MMNGR_PRIVATE_H__ */

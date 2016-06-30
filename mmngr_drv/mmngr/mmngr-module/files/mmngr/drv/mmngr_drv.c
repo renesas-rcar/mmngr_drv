@@ -93,6 +93,7 @@ static bool			have_lossy_entries;
 static bool			is_sspbuf_valid = false;
 #endif
 
+#ifdef MMNGR_IPMMU_PMB_ENABLE
 /* IPMMU (PMB mode) */
 static struct phys2virt_map *common_p2v_map;
 static struct phys2virt_map *mmp_p2v_map;
@@ -194,6 +195,7 @@ static struct rcar_ipmmu *rcar_gen3_ipmmu[] = {
 	&ipmmuvc1,
 	NULL, /* End of list */
 };
+#endif
 
 static int mm_ioc_alloc(struct device *mm_dev,
 			int __user *in,
@@ -760,6 +762,7 @@ static int _parse_reserved_mem_dt(char *dt_path,
 	return 0;
 }
 
+#ifdef MMNGR_IPMMU_PMB_ENABLE
 static int pmb_get_table_count(u64 size, unsigned int *table_count,
 				char *dt_path)
 {
@@ -874,6 +877,7 @@ static int pmb_create_phys2virt_map(void)
 
 	return ret;
 }
+#endif
 
 static int parse_reserved_mem_dt(void)
 {
@@ -981,6 +985,7 @@ static int init_lossy_info(void)
 	return ret;
 }
 
+#ifdef MMNGR_IPMMU_PMB_ENABLE
 /* IPMMU (PMB mode) */
 static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 {
@@ -1202,6 +1207,32 @@ static void pmb_exit(void)
 	unmap_register();
 }
 
+static int ipmmu_probe(struct platform_device *pdev)
+{
+	return 0;
+}
+
+static int ipmmu_remove(struct platform_device *pdev)
+{
+	return 0;
+}
+
+static const struct of_device_id ipmmu_of_match[] = {
+	{ .compatible = "renesas,ipmmu-pmb" },
+	{ },
+};
+
+static struct platform_driver ipmmu_driver = {
+	.driver = {
+		.name = DEVNAME "_ipmmu_drv",
+		.owner = THIS_MODULE,
+		.of_match_table = ipmmu_of_match,
+	},
+	.probe = ipmmu_probe,
+	.remove = ipmmu_remove,
+};
+#endif
+
 static const struct file_operations fops = {
 	.owner		= THIS_MODULE,
 	.open		= open,
@@ -1296,6 +1327,7 @@ static int mm_probe(struct platform_device *pdev)
 	p->mm_dev = dev;
 	mm_drvdata = p;
 
+#ifdef MMNGR_IPMMU_PMB_ENABLE
 	ret = pmb_create_phys2virt_map();
 	if (ret) {
 		pr_err("MMD mm_init ERROR\n");
@@ -1303,6 +1335,7 @@ static int mm_probe(struct platform_device *pdev)
 	}
 
 	pmb_init();
+#endif
 	spin_lock_init(&lock);
 
 	return 0;
@@ -1312,7 +1345,9 @@ static int mm_remove(struct platform_device *pdev)
 {
 	uint32_t i;
 
+#ifdef MMNGR_IPMMU_PMB_ENABLE
 	pmb_exit();
+#endif
 
 	misc_deregister(&misc);
 
@@ -1356,41 +1391,20 @@ static struct platform_driver mm_driver = {
 	.remove = mm_remove,
 };
 
-static int ipmmu_probe(struct platform_device *pdev)
-{
-	return 0;
-}
-
-static int ipmmu_remove(struct platform_device *pdev)
-{
-	return 0;
-}
-
-static const struct of_device_id ipmmu_of_match[] = {
-	{ .compatible = "renesas,ipmmu-pmb" },
-	{ },
-};
-
-static struct platform_driver ipmmu_driver = {
-	.driver = {
-		.name = DEVNAME "_ipmmu_drv",
-		.owner = THIS_MODULE,
-		.of_match_table = ipmmu_of_match,
-	},
-	.probe = ipmmu_probe,
-	.remove = ipmmu_remove,
-};
-
 static int mm_init(void)
 {
+#ifdef MMNGR_IPMMU_PMB_ENABLE
 	platform_driver_register(&ipmmu_driver);
+#endif
 	return platform_driver_register(&mm_driver);
 }
 
 static void mm_exit(void)
 {
 	platform_driver_unregister(&mm_driver);
+#ifdef MMNGR_IPMMU_PMB_ENABLE
 	platform_driver_unregister(&ipmmu_driver);
+#endif
 }
 
 module_init(mm_init);
