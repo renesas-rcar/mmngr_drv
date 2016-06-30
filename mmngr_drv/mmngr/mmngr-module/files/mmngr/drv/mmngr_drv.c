@@ -1218,7 +1218,8 @@ static int ipmmu_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id ipmmu_of_match[] = {
-	{ .compatible = "renesas,ipmmu-pmb" },
+	{ .compatible = "renesas,ipmmu-pmb-r8a7795"},
+	{ .compatible = "renesas,ipmmu-pmb-r8a7796"},
 	{ },
 };
 
