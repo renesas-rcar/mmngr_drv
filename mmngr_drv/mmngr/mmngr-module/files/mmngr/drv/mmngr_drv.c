@@ -73,6 +73,7 @@
 #include <linux/dma-contiguous.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
+#include <linux/of_device.h>
 
 #include "mmngr_public.h"
 #include "mmngr_private.h"
@@ -97,6 +98,7 @@ static bool			is_sspbuf_valid = false;
 /* IPMMU (PMB mode) */
 static struct phys2virt_map common_p2v_map;
 static struct phys2virt_map mmp_p2v_map;
+static struct rcar_ipmmu **rcar_gen3_ipmmu;
 
 static struct pmb_table_map pmb_table_mapping[] = {
 	{0x20000000,	32, 0}, /* 512MB table */
@@ -147,54 +149,77 @@ static struct hw_register ipmmu_ip_regs[] = {
 	 */
 };
 
-static struct ip_master ipmmuvc0_masters[] = {
+/* R-Car H3 (R8A7795) */
+static struct ip_master r8a7795_ipmmuvc0_masters[] = {
 	{"FCP-CS", 0},
 };
 
-static struct rcar_ipmmu ipmmuvc0 = {
+static struct rcar_ipmmu r8a7795_ipmmuvc0 = {
 	.ipmmu_name	= "IPMMUVC0",
 	.base_addr	= IPMMUVC0_BASE,
 	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
-	.masters_count	= ARRAY_SIZE(ipmmuvc0_masters),
+	.masters_count	= ARRAY_SIZE(r8a7795_ipmmuvc0_masters),
 	.ipmmu_reg	= ipmmu_ip_regs,
-	.ip_masters	= ipmmuvc0_masters,
+	.ip_masters	= r8a7795_ipmmuvc0_masters,
 };
 
-static struct ip_master ipmmuvc1_masters[] = {
+static struct ip_master r8a7795_ipmmuvc1_masters[] = {
 	{"FCP-CI ch0",	4},
 	{"FCP-CI ch1",	5},
 };
 
-static struct rcar_ipmmu ipmmuvc1 = {
+static struct rcar_ipmmu r8a7795_ipmmuvc1 = {
 	.ipmmu_name	= "IPMMUVC1",
 	.base_addr	= IPMMUVC1_BASE,
 	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
-	.masters_count	= ARRAY_SIZE(ipmmuvc1_masters),
+	.masters_count	= ARRAY_SIZE(r8a7795_ipmmuvc1_masters),
 	.ipmmu_reg	= ipmmu_ip_regs,
-	.ip_masters	= ipmmuvc1_masters,
+	.ip_masters	= r8a7795_ipmmuvc1_masters,
 };
 
-static struct ip_master ipmmuvp_masters[] = {
+static struct ip_master r8a7795_ipmmuvp_masters[] = {
 	{"FCP-F ch0",	0},
 	{"FCP-F ch1",	1},
 	{"FCP-F ch2",	2},
 };
 
-static struct rcar_ipmmu ipmmuvp = {
+static struct rcar_ipmmu r8a7795_ipmmuvp = {
 	.ipmmu_name	= "IPMMUVP",
 	.base_addr	= IPMMUVP_BASE,
 	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
-	.masters_count	= ARRAY_SIZE(ipmmuvp_masters),
+	.masters_count	= ARRAY_SIZE(r8a7795_ipmmuvp_masters),
 	.ipmmu_reg	= ipmmu_ip_regs,
-	.ip_masters	= ipmmuvp_masters,
+	.ip_masters	= r8a7795_ipmmuvp_masters,
 };
 
-static struct rcar_ipmmu *rcar_gen3_ipmmu[] = {
-	&ipmmuvp,
-	&ipmmuvc0,
-	&ipmmuvc1,
+static struct rcar_ipmmu *r8a7795_ipmmu[] = {
+	&r8a7795_ipmmuvp,
+	&r8a7795_ipmmuvc0,
+	&r8a7795_ipmmuvc1,
 	NULL, /* End of list */
 };
+
+/* R-Car M3 (R8A7796) */
+static struct ip_master r8a7796_ipmmuvc0_masters[] = {
+	{"FCP-CI",  4},
+	{"FCP-CS",  8},
+	{"FCP-F",  16},
+};
+
+static struct rcar_ipmmu r8a7796_ipmmuvc0 = {
+	.ipmmu_name	= "IPMMUVC0",
+	.base_addr	= IPMMUVC0_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7796_ipmmuvc0_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7796_ipmmuvc0_masters,
+};
+
+static struct rcar_ipmmu *r8a7796_ipmmu[] = {
+	&r8a7796_ipmmuvc0,
+	NULL, /* End of list */
+};
+
 #endif
 
 static int mm_ioc_alloc(struct device *mm_dev,
@@ -1249,6 +1274,15 @@ static void pmb_exit(void)
 
 static int ipmmu_probe(struct platform_device *pdev)
 {
+	struct device *dev = &pdev->dev;
+	const struct rcar_ipmmu_data *data;
+
+	data = of_device_get_match_data(dev);
+	if (!data)
+		return -1;
+
+	rcar_gen3_ipmmu = data->ipmmu_data;
+
 	return 0;
 }
 
@@ -1257,9 +1291,23 @@ static int ipmmu_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static const struct rcar_ipmmu_data r8a7795_ipmmu_data = {
+	.ipmmu_data = r8a7795_ipmmu,
+};
+
+static const struct rcar_ipmmu_data r8a7796_ipmmu_data = {
+	.ipmmu_data = r8a7796_ipmmu,
+};
+
 static const struct of_device_id ipmmu_of_match[] = {
-	{ .compatible = "renesas,ipmmu-pmb-r8a7795"},
-	{ .compatible = "renesas,ipmmu-pmb-r8a7796"},
+	{
+	  .compatible	= "renesas,ipmmu-pmb-r8a7795",
+	  .data		= &r8a7795_ipmmu_data
+	},
+	{
+	  .compatible	= "renesas,ipmmu-pmb-r8a7796",
+	  .data = &r8a7796_ipmmu_data
+	},
 	{ },
 };
 

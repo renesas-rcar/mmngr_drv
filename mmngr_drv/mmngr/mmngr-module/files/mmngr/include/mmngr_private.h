@@ -146,6 +146,11 @@ struct rcar_ipmmu {
 	struct hw_register *ipmmu_reg;
 	struct ip_master *ip_masters;
 };
+
+struct rcar_ipmmu_data {
+	struct rcar_ipmmu **ipmmu_data;
+};
+
 #endif
 
 extern struct cma *rcar_gen3_dma_contiguous;
