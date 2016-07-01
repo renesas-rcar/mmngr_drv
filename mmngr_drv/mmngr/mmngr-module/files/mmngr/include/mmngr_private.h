@@ -121,9 +121,14 @@ struct ip_master {
 	unsigned int utlb_no;
 };
 
-struct phys2virt_map {
+struct pmb_p2v_map {
 	unsigned int impmba;
 	unsigned int impmbd;
+};
+
+struct phys2virt_map {
+	struct pmb_p2v_map *p2v_map;
+	unsigned int map_count;
 };
 
 struct pmb_table_map {
@@ -202,12 +207,12 @@ static int _parse_reserved_mem_dt(char *dt_path,
 static int parse_reserved_mem_dt(void);
 #ifdef MMNGR_IPMMU_PMB_DISABLE
 static int validate_memory_map(void);
-#endif
 
 #if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
 #define MM_OMXBUF_ADDR		(0x70000000UL)
 #define MM_OMXBUF_SIZE		(256 * 1024 * 1024)
 #endif
+#endif /* MMNGR_IPMMU_PMB_DISABLE */
 
 #define	MM_CO_ORDER		(12)
 
@@ -265,11 +270,14 @@ static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
 #define UPPER_PPN_MASK		(0xFF00000000UL)
 #define IMPMBA_VALUE(virt_addr)	(virt_addr)
 #define IMPMBD_VALUE(phys_addr) ((phys_addr & LOWER_PPN_MASK) \
-				| ((phys_addr & UPPER_PPN_MASK) > 16))
+				| ((phys_addr & UPPER_PPN_MASK) >> 16))
+
+#define MM_OMXBUF_ADDR		(0xC0000000)
 
 /* IPMMU virtual address */
 #define CMA_1ST_VIRT_BASE_ADDR	(mm_common_reserve_addr)
-#define CMA_2ND_VIRT_BASE_ADDR	(0xC0000000)
+#define CMA_2ND_VIRT_BASE_ADDR	(MM_OMXBUF_ADDR)
+
 #endif /* MMNGR_IPMMU_MMU_ENABLE */
 
 #endif	/* __MMNGR_PRIVATE_H__ */
