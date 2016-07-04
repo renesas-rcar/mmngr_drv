@@ -882,11 +882,11 @@ static int pmb_update_table_info(struct pmb_p2v_map *p2v_map,
 
 	for (i = 0; i < ARRAY_SIZE(pmb_table_mapping); i++) {
 		table_count = pmb_table_mapping[i].table_count;
-		table_size = pmb_table_mapping[i].table_size;
-		impmbd_sz = pmb_table_mapping[i].impmbd_sz;
-
 		if (!table_count)
 			continue;
+
+		table_size = pmb_table_mapping[i].table_size;
+		impmbd_sz = pmb_table_mapping[i].impmbd_sz;
 
 		for (j = 0; j < table_count; j++) {
 			p->impmba = IMPMBA_VALUE(tmp_virt_addr);
@@ -1203,8 +1203,6 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 			if (!strcmp(ipmmu_reg[j].reg_name, "IMPMBA0"))
 				break;
 		}
-
-		struct pmb_p2v_map *p2v_map = common_p2v_map.p2v_map;
 
 		for (k = 0; k < common_p2v_map.map_count; k++) {
 			iowrite32(0x0, virt_addr + ipmmu_reg[j].reg_offset);
