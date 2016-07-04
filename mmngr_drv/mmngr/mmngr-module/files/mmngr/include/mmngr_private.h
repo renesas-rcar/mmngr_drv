@@ -134,6 +134,7 @@ struct phys2virt_map {
 struct pmb_table_map {
 	unsigned long table_size;
 	unsigned int multiple_of_16;
+	unsigned int impmbd_sz;
 	unsigned int table_count;
 };
 
@@ -267,10 +268,11 @@ static phys_addr_t pmb_virt2phys(unsigned int ipmmu_virt_addr);
 #define IMUCTRn_OFFSET(n)	(0x300 + 0x10 * n)
 
 #define REG_SIZE		IMUCTRn_OFFSET(MAX_UTLB)
+
 #define IMPCTR_VAL		(0x00000001)
 #define IMUCTR_VAL		(0x00000081)
-#define IMPMBAn_VAL		(0x00000100)
-#define IMPMBDn_VAL		(0x00000180)
+#define IMPMBAn_V_BIT		(0x00000100)
+#define IMPMBDn_V_BIT		(0x00000100)
 
 #define LOWER_PPN_MASK		(0x00FF000000UL)
 #define UPPER_PPN_MASK		(0xFF00000000UL)
