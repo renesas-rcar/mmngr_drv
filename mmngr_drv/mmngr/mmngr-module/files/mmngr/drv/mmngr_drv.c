@@ -700,7 +700,14 @@ static int mmap(struct file *filp, struct vm_area_struct *vma)
 		return -EINVAL;
 
 	off = vma->vm_pgoff << PAGE_SHIFT;
+#ifdef MMNGR_IPMMU_PMB_DISABLE
 	start = p->phy_addr;
+#else
+	start = pmb_virt2phys((unsigned int)p->phy_addr);
+	if (!start)
+		return -EINVAL;
+#endif
+
 	len = PAGE_ALIGN((start & ~PAGE_MASK) + p->size);
 
 	if ((vma->vm_end - vma->vm_start + off) > len)
@@ -790,6 +797,28 @@ static int _parse_reserved_mem_dt(char *dt_path,
 }
 
 #ifdef MMNGR_IPMMU_PMB_ENABLE
+static phys_addr_t pmb_virt2phys(unsigned int ipmmu_virt_addr)
+{
+	phys_addr_t cpu_phys_addr;
+
+	if ((ipmmu_virt_addr >= CMA_1ST_VIRT_BASE_ADDR) &
+	    (ipmmu_virt_addr < (CMA_1ST_VIRT_BASE_ADDR
+				+ mm_common_reserve_size))) {
+		cpu_phys_addr = ipmmu_virt_addr;
+	} else if ((ipmmu_virt_addr >= CMA_2ND_VIRT_BASE_ADDR) &
+		(ipmmu_virt_addr < (CMA_2ND_VIRT_BASE_ADDR
+					+ mm_kernel_reserve_addr))) {
+		cpu_phys_addr = ((ipmmu_virt_addr - CMA_2ND_VIRT_BASE_ADDR)
+				+ mm_kernel_reserve_addr);
+	} else {
+		pr_err("Invalid IPMMU virtual address 0x%llx\n",
+					ipmmu_virt_addr);
+		return 0;
+	}
+
+	return cpu_phys_addr;
+}
+
 static int pmb_get_table_count(u64 size, unsigned int *table_count,
 				char *dt_path)
 {

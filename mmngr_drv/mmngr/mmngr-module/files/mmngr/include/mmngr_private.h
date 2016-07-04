@@ -251,6 +251,7 @@ static int pmb_init(void);
 static void pmb_exit(void);
 static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling);
 static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
+static phys_addr_t pmb_virt2phys(unsigned int ipmmu_virt_addr);
 
 #define IPMMUVC0_BASE		(0xFE6B0000)
 #define IPMMUVC1_BASE		(0xFE6F0000)
