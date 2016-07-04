@@ -98,6 +98,7 @@ static bool			is_sspbuf_valid = false;
 /* IPMMU (PMB mode) */
 static struct phys2virt_map common_p2v_map;
 static struct phys2virt_map mmp_p2v_map;
+static struct phys2virt_map lossy_p2v_map;
 static struct rcar_ipmmu **rcar_gen3_ipmmu;
 
 static struct pmb_table_map pmb_table_mapping[] = {
@@ -927,10 +928,14 @@ static int __pmb_create_phys2virt_map(char *dt_path, u64 phys_addr,
 		virt_addr = CMA_1ST_VIRT_BASE_ADDR;
 		common_p2v_map.p2v_map = p2v_map;
 		common_p2v_map.map_count = new_table_count - *table_count;
-	} else { /* (!strcmp(dt_path, "/reserved-memory/linux,multimedia")) */
+	} else if (!strcmp(dt_path, "/reserved-memory/linux,multimedia")) {
 		virt_addr = CMA_2ND_VIRT_BASE_ADDR;
 		mmp_p2v_map.p2v_map = p2v_map;
 		mmp_p2v_map.map_count = new_table_count - *table_count;
+	} else { /* /reserved-memory/linux,lossy_decompress */
+		virt_addr = CMA_LOSSY_VIRT_BASE_ADDR;
+		lossy_p2v_map.p2v_map = p2v_map;
+		lossy_p2v_map.map_count = new_table_count - *table_count;
 	}
 
 	ret = pmb_update_table_info(p2v_map, phys_addr, virt_addr);
@@ -954,6 +959,10 @@ static int pmb_create_phys2virt_map(void)
 			"/reserved-memory/linux,multimedia",
 			mm_kernel_reserve_addr, mm_kernel_reserve_size,
 			&table_count);
+
+	ret = __pmb_create_phys2virt_map(
+			"/reserved-memory/linux,lossy_decompress",
+			mm_lossybuf_addr, mm_lossybuf_size, &table_count);
 
 	return ret;
 }
@@ -1174,6 +1183,19 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 			j += 2; /* Move to next PMB entry */
 		}
 
+		p2v_map = lossy_p2v_map.p2v_map;
+
+		for (k = 0; k < lossy_p2v_map.map_count; k++) {
+			pr_debug("k=%d: impmba 0x%llx impmbd 0x%llx\n",
+				k, p2v_map[k].impmba, p2v_map[k].impmbd);
+
+			iowrite32(IMPMBAn_VAL | p2v_map[k].impmba,
+				virt_addr + ipmmu_reg[j].reg_offset);
+			iowrite32(IMPMBDn_VAL | p2v_map[k].impmbd,
+				virt_addr + ipmmu_reg[j+1].reg_offset);
+			j += 2; /* Move to next PMB entry */
+		}
+
 	} else if (handling == CLEAR_PMB_AREA) { /* Clear PMB area for IPMMU */
 		for (j = 0; j < reg_count; j++) {
 			if (!strcmp(ipmmu_reg[j].reg_name, "IMPMBA0"))
@@ -1189,6 +1211,12 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 		}
 
 		for (k = 0; k < mmp_p2v_map.map_count; k++) {
+			iowrite32(0x0, virt_addr + ipmmu_reg[j].reg_offset);
+			iowrite32(0x0, virt_addr + ipmmu_reg[j+1].reg_offset);
+			j += 2; /* Move to next PMB entry */
+		}
+
+		for (k = 0; k < lossy_p2v_map.map_count; k++) {
 			iowrite32(0x0, virt_addr + ipmmu_reg[j].reg_offset);
 			iowrite32(0x0, virt_addr + ipmmu_reg[j+1].reg_offset);
 			j += 2; /* Move to next PMB entry */
