@@ -97,9 +97,12 @@ static bool			is_sspbuf_valid = false;
 
 #ifdef MMNGR_IPMMU_PMB_ENABLE
 /* IPMMU (PMB mode) */
-static struct phys2virt_map common_p2v_map;
-static struct phys2virt_map mmp_p2v_map;
-static struct phys2virt_map lossy_p2v_map;
+static struct p2v_map p2v_mapping[MAX_PMB_TABLE];
+static struct pmb_p2v_map pmb_p2v_mapping = {
+	.p2v_map = p2v_mapping,
+	/* Actual map_count will be set during MMNGR init */
+};
+
 static struct rcar_ipmmu **rcar_gen3_ipmmu;
 
 static struct pmb_table_map pmb_table_mapping[] = {
@@ -822,7 +825,7 @@ static phys_addr_t pmb_virt2phys(unsigned int ipmmu_virt_addr)
 		cpu_phys_addr = ((ipmmu_virt_addr - CMA_2ND_VIRT_BASE_ADDR)
 				+ mm_kernel_reserve_addr);
 	} else {
-		pr_err("Invalid IPMMU virtual address 0x%llx\n",
+		pr_err("Invalid IPMMU virtual address 0x%08x\n",
 					ipmmu_virt_addr);
 		return 0;
 	}
@@ -830,12 +833,51 @@ static phys_addr_t pmb_virt2phys(unsigned int ipmmu_virt_addr)
 	return cpu_phys_addr;
 }
 
-static int pmb_get_table_count(u64 size, unsigned int *table_count,
-				char *dt_path)
+static unsigned int pmb_get_table_type(u64 phys_addr, u64 size)
+{
+	unsigned int i;
+
+	/*
+	 * Find the 1st table type
+	 * which the phys start address is aligned to its table size.
+	 */
+	for (i = 0; i < ARRAY_SIZE(pmb_table_mapping); i++) {
+		if ((phys_addr % pmb_table_mapping[i].table_size) ||
+			(size < pmb_table_mapping[i].table_size))
+			continue;
+		else
+			break;
+	}
+
+	pr_debug("%s: Select table size %ldMB\n",
+		  __func__, pmb_table_mapping[i].table_size >> 20);
+
+	return i;
+}
+
+static void pmb_update_table_info(struct p2v_map *p2v_map,
+			unsigned int impmbd_sz, u64 phys_addr,
+					unsigned int virt_addr)
+{
+	p2v_map->impmba = IMPMBA_VALUE(virt_addr);
+	p2v_map->impmbd = IMPMBD_VALUE(phys_addr) | impmbd_sz;
+
+	pr_debug("%s: virt_addr 0x%08x phys_addr 0x%llx\n",
+	__func__, virt_addr, phys_addr);
+
+
+	pr_debug("%s: IMPMBA_VALUE(virt_addr) 0x%08x IMPMBD_VALUE(phys_addr) 0x%llx\n",
+	__func__, IMPMBA_VALUE(virt_addr), IMPMBD_VALUE(phys_addr));
+}
+
+static int __pmb_create_phys2virt_map(char *dt_path, u64 phys_addr,
+				u64 size, unsigned int *table_count)
 {
 	int ret = 0;
-	unsigned int i, count, subtract = 0, mult_of_16, size_in_MB;
+	unsigned int table_type, virt_addr, size_in_MB, table_entry, impmbd_sz;
+	u64 tmp_size, tmp_phys_addr;
 
+	/* Sanity test for allocated memory */
 	size_in_MB = size >> 20;
 
 	if (size_in_MB % 16) {
@@ -844,114 +886,42 @@ static int pmb_get_table_count(u64 size, unsigned int *table_count,
 		return -1;
 	}
 
-	mult_of_16 = size_in_MB >> 4;
-
-	pr_debug("%s: mult_of_16 %d size_in_MB %d\n",
-			__func__, mult_of_16, size_in_MB);
-	i = 0;
-	count = *table_count;
-	while (mult_of_16 > 0) {
-		if (mult_of_16 >= pmb_table_mapping[i].multiple_of_16) {
-			subtract = mult_of_16 -
-					pmb_table_mapping[i].multiple_of_16;
-			count++;
-			pmb_table_mapping[i].table_count++;
-			mult_of_16 = subtract;
-		} else {
-			i++;
-		}
-
-		pr_debug("%s: i %d mult_of_16 %d subtract %d, count %d\n",
-			__func__, i, mult_of_16, subtract, count);
-
-	}
-
-	if (count > 16) {
-		pr_err("Could not support %d PMB tables. 16 is maximum.",
-				count);
-		ret = -1;
-	}
-
-	*table_count = count;
-
-	return ret;
-}
-
-static int pmb_update_table_info(struct pmb_p2v_map *p2v_map,
-			u64 phys_addr, unsigned int virt_addr)
-{
-	int ret = 0;
-	struct pmb_p2v_map *p;
-	unsigned int i, j, table_count, table_size, impmbd_sz;
-	u64 tmp_phys_addr, tmp_virt_addr;
-
-	p = p2v_map;
-	tmp_phys_addr = phys_addr;
-	tmp_virt_addr = virt_addr;
-
-	for (i = 0; i < ARRAY_SIZE(pmb_table_mapping); i++) {
-		table_count = pmb_table_mapping[i].table_count;
-		if (!table_count)
-			continue;
-
-		table_size = pmb_table_mapping[i].table_size;
-		impmbd_sz = pmb_table_mapping[i].impmbd_sz;
-
-		for (j = 0; j < table_count; j++) {
-			p->impmba = IMPMBA_VALUE(tmp_virt_addr);
-			p->impmbd = IMPMBD_VALUE(tmp_phys_addr) | impmbd_sz;
-
-			pr_debug("%s: j %d tmp_virt_addr 0x%llx tmp_phys_addr 0x%llx, table_count %d\n",
-			__func__, j, tmp_virt_addr, tmp_phys_addr, table_count);
-
-			pr_debug("%s: j %d IMPMBA_VALUE(tmp_virt_addr) 0x%llx IMPMBD_VALUE(tmp_phys_addr) 0x%llx\n",
-			__func__, j, IMPMBA_VALUE(tmp_virt_addr),
-			IMPMBD_VALUE(tmp_phys_addr));
-
-			p++;
-			tmp_phys_addr += table_size;
-			tmp_virt_addr += table_size;
-		}
-		pmb_table_mapping[i].table_count = 0;
-	}
-
-	return ret;
-}
-
-static int __pmb_create_phys2virt_map(char *dt_path, u64 phys_addr,
-				u64 size, unsigned int *table_count)
-{
-	int ret = 0;
-	unsigned int new_table_count, virt_addr;
-	struct pmb_p2v_map *p2v_map;
-
-	new_table_count = *table_count;
-	ret = pmb_get_table_count(size, &new_table_count, dt_path);
-	if (ret)
-		return ret;
-
-	p2v_map = kzalloc(((new_table_count - *table_count) *
-			sizeof(struct pmb_p2v_map)), GFP_KERNEL);
-	if (p2v_map == NULL)
-		return -1;
-
+	/* Set the base IPMMU virt address */
 	if (!strcmp(dt_path, "/reserved-memory/linux,cma")) {
 		virt_addr = CMA_1ST_VIRT_BASE_ADDR;
-		common_p2v_map.p2v_map = p2v_map;
-		common_p2v_map.map_count = new_table_count - *table_count;
 	} else if (!strcmp(dt_path, "/reserved-memory/linux,multimedia")) {
 		virt_addr = CMA_2ND_VIRT_BASE_ADDR;
-		mmp_p2v_map.p2v_map = p2v_map;
-		mmp_p2v_map.map_count = new_table_count - *table_count;
 	} else { /* /reserved-memory/linux,lossy_decompress */
 		virt_addr = CMA_LOSSY_VIRT_BASE_ADDR;
-		lossy_p2v_map.p2v_map = p2v_map;
-		lossy_p2v_map.map_count = new_table_count - *table_count;
 	}
 
-	ret = pmb_update_table_info(p2v_map, phys_addr, virt_addr);
+	table_entry = *table_count;
+	tmp_size = size;
+	tmp_phys_addr = phys_addr;
 
-	*table_count = new_table_count;
+	while (tmp_size > 0) {
+		if (table_entry == MAX_PMB_TABLE) {
+			pr_err("Over 16 PMB tables. 16 is maximum.");
+			ret = -1;
+		}
+
+		/* Proceed a table entry */
+		table_type = pmb_get_table_type(tmp_phys_addr, tmp_size);
+		impmbd_sz = pmb_table_mapping[table_type].impmbd_sz;
+
+		pmb_update_table_info(&p2v_mapping[table_entry],
+					impmbd_sz, tmp_phys_addr, virt_addr);
+
+		/* Update for next table entry */
+		tmp_phys_addr += pmb_table_mapping[table_type].table_size;
+		virt_addr += pmb_table_mapping[table_type].table_size;
+		tmp_size -= pmb_table_mapping[table_type].table_size;
+
+		table_entry++;
+	}
+
+	pmb_p2v_mapping.map_count += (table_entry - *table_count);
+	*table_count = table_entry;
 
 	return ret;
 }
@@ -978,11 +948,6 @@ static int pmb_create_phys2virt_map(void)
 	return ret;
 }
 
-static void pmb_release_phys2virt_map(void)
-{
-	kfree(common_p2v_map.p2v_map);
-	kfree(mmp_p2v_map.p2v_map);
-}
 #endif
 
 static int parse_reserved_mem_dt(void)
@@ -1168,41 +1133,14 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 				break;
 		}
 
-		struct pmb_p2v_map *p2v_map = common_p2v_map.p2v_map;
+		for (k = 0; k < pmb_p2v_mapping.map_count; k++) {
+			pr_debug("k=%d: impmba 0x%08x impmbd 0x%08x\n",
+				  k, p2v_mapping[k].impmba,
+				  p2v_mapping[k].impmbd);
 
-		for (k = 0; k < common_p2v_map.map_count; k++) {
-			pr_debug("k=%d: impmba 0x%llx impmbd 0x%llx\n",
-				k, p2v_map[k].impmba, p2v_map[k].impmbd);
-
-			iowrite32(IMPMBAn_V_BIT | p2v_map[k].impmba,
+			iowrite32(IMPMBAn_V_BIT | p2v_mapping[k].impmba,
 				virt_addr + ipmmu_reg[j].reg_offset);
-			iowrite32(IMPMBDn_V_BIT | p2v_map[k].impmbd,
-				virt_addr + ipmmu_reg[j+1].reg_offset);
-			j += 2; /* Move to next PMB entry */
-		}
-
-		p2v_map = mmp_p2v_map.p2v_map;
-
-		for (k = 0; k < mmp_p2v_map.map_count; k++) {
-			pr_debug("k=%d: impmba 0x%llx impmbd 0x%llx\n",
-				k, p2v_map[k].impmba, p2v_map[k].impmbd);
-
-			iowrite32(IMPMBAn_V_BIT | p2v_map[k].impmba,
-				virt_addr + ipmmu_reg[j].reg_offset);
-			iowrite32(IMPMBDn_V_BIT | p2v_map[k].impmbd,
-				virt_addr + ipmmu_reg[j+1].reg_offset);
-			j += 2; /* Move to next PMB entry */
-		}
-
-		p2v_map = lossy_p2v_map.p2v_map;
-
-		for (k = 0; k < lossy_p2v_map.map_count; k++) {
-			pr_debug("k=%d: impmba 0x%llx impmbd 0x%llx\n",
-				k, p2v_map[k].impmba, p2v_map[k].impmbd);
-
-			iowrite32(IMPMBAn_V_BIT | p2v_map[k].impmba,
-				virt_addr + ipmmu_reg[j].reg_offset);
-			iowrite32(IMPMBDn_V_BIT | p2v_map[k].impmbd,
+			iowrite32(IMPMBDn_V_BIT | p2v_mapping[k].impmbd,
 				virt_addr + ipmmu_reg[j+1].reg_offset);
 			j += 2; /* Move to next PMB entry */
 		}
@@ -1213,19 +1151,7 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 				break;
 		}
 
-		for (k = 0; k < common_p2v_map.map_count; k++) {
-			iowrite32(0x0, virt_addr + ipmmu_reg[j].reg_offset);
-			iowrite32(0x0, virt_addr + ipmmu_reg[j+1].reg_offset);
-			j += 2; /* Move to next PMB entry */
-		}
-
-		for (k = 0; k < mmp_p2v_map.map_count; k++) {
-			iowrite32(0x0, virt_addr + ipmmu_reg[j].reg_offset);
-			iowrite32(0x0, virt_addr + ipmmu_reg[j+1].reg_offset);
-			j += 2; /* Move to next PMB entry */
-		}
-
-		for (k = 0; k < lossy_p2v_map.map_count; k++) {
+		for (k = 0; k < pmb_p2v_mapping.map_count; k++) {
 			iowrite32(0x0, virt_addr + ipmmu_reg[j].reg_offset);
 			iowrite32(0x0, virt_addr + ipmmu_reg[j+1].reg_offset);
 			j += 2; /* Move to next PMB entry */
@@ -1504,7 +1430,6 @@ static int mm_remove(struct platform_device *pdev)
 
 #ifdef MMNGR_IPMMU_PMB_ENABLE
 	pmb_exit();
-	pmb_release_phys2virt_map();
 #endif
 
 	misc_deregister(&misc);

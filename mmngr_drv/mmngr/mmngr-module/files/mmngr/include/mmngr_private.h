@@ -121,13 +121,13 @@ struct ip_master {
 	unsigned int utlb_no;
 };
 
-struct pmb_p2v_map {
+struct p2v_map {
 	unsigned int impmba;
 	unsigned int impmbd;
 };
 
-struct phys2virt_map {
-	struct pmb_p2v_map *p2v_map;
+struct pmb_p2v_map {
+	struct p2v_map *p2v_map;
 	unsigned int map_count;
 };
 
@@ -259,6 +259,7 @@ static phys_addr_t pmb_virt2phys(unsigned int ipmmu_virt_addr);
 #define IPMMUVP_BASE		(0xFE990000)
 #define IPMMUVI_BASE		(0xFEBD0000)
 
+#define MAX_PMB_TABLE		(16)
 #define IMPCTR_OFFSET		(0x200)
 #define IMPSTR_OFFSET		(0x208)
 #define IMPEAR_OFFSET		(0x20C)
