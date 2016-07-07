@@ -114,6 +114,7 @@ enum {
 struct hw_register {
 	char *reg_name;
 	unsigned int reg_offset;
+	unsigned int reg_val;
 };
 
 struct ip_master {
