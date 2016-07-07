@@ -1285,6 +1285,16 @@ static void pmb_debuginfo(void)
 	handle_registers(rcar_gen3_ipmmu, PRINT_PMB_DEBUG);
 }
 
+static void backup_pmb_registers(void)
+{
+	handle_registers(rcar_gen3_ipmmu, BACKUP_PMB_REGS);
+}
+
+static void restore_pmb_registers(void)
+{
+	handle_registers(rcar_gen3_ipmmu, RESTORE_PMB_REGS);
+}
+
 static int pmb_init(void)
 {
 	int			ret = 0;
@@ -1353,9 +1363,34 @@ static const struct of_device_id ipmmu_of_match[] = {
 	{ },
 };
 
+#ifdef CONFIG_PM_SLEEP
+static int mm_ipmmu_suspend(struct device *dev)
+{
+	backup_pmb_registers();
+
+	return 0;
+}
+
+static int mm_ipmmu_resume(struct device *dev)
+{
+	restore_pmb_registers();
+	enable_pmb();
+	enable_utlb();
+
+	return 0;
+}
+
+static SIMPLE_DEV_PM_OPS(mm_ipmmu_pm_ops,
+			mm_ipmmu_suspend, mm_ipmmu_resume);
+#define DEV_PM_OPS (&mm_ipmmu_pm_ops)
+#else
+#define DEV_PM_OPS NULL
+#endif /* CONFIG_PM_SLEEP */
+
 static struct platform_driver ipmmu_driver = {
 	.driver = {
 		.name = DEVNAME "_ipmmu_drv",
+		.pm	= DEV_PM_OPS,
 		.owner = THIS_MODULE,
 		.of_match_table = ipmmu_of_match,
 	},
