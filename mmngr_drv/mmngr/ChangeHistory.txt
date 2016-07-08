@@ -13,3 +13,6 @@ MMNGR v0.4
 MMNGR v0.5
 	1. Add support for Kriek board.
 	2. Fix sparse warning messages.
+
+MMNGR v0.6
+	1. Add IPMMU(PMB) support for memory allocation.
