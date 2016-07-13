@@ -16,3 +16,8 @@ MMNGR v0.5
 
 MMNGR v0.6
 	1. Add IPMMU(PMB) support for memory allocation.
+
+MMNGR v0.7
+	1. Add IPMMU(PMB) registers backup/restore to support System Suspend-to-RAM.
+	2. Various fixes and improvement for MMNGR operation.
+	3. Update MIT license.
