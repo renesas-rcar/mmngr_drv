@@ -1474,6 +1474,16 @@ static int mm_probe(struct platform_device *pdev)
 	if (p == NULL)
 		return -1;
 
+#ifdef MMNGR_IPMMU_PMB_ENABLE
+	ret = pmb_create_phys2virt_map();
+	if (ret) {
+		pr_err("MMD mm_init ERROR\n");
+		return -1;
+	}
+
+	pmb_init();
+#endif
+
 	misc_register(&misc);
 
 	/* Handler for mem alloc in 2nd CMA area */
@@ -1499,15 +1509,7 @@ static int mm_probe(struct platform_device *pdev)
 	p->mm_dev = dev;
 	mm_drvdata = p;
 
-#ifdef MMNGR_IPMMU_PMB_ENABLE
-	ret = pmb_create_phys2virt_map();
-	if (ret) {
-		pr_err("MMD mm_init ERROR\n");
-		return -1;
-	}
 
-	pmb_init();
-#endif
 	spin_lock_init(&lock);
 
 	return 0;
@@ -1517,11 +1519,11 @@ static int mm_remove(struct platform_device *pdev)
 {
 	uint32_t i;
 
+	misc_deregister(&misc);
+
 #ifdef MMNGR_IPMMU_PMB_ENABLE
 	pmb_exit();
 #endif
-
-	misc_deregister(&misc);
 
 #ifdef MMNGR_SSP_ENABLE
 	if (is_sspbuf_valid)
