@@ -993,7 +993,7 @@ static int init_lossy_info(void)
 	int ret = 0;
 	void __iomem *mem;
 	uint32_t i, start, end, fmt;
-	struct BM *bm;
+	struct BM *bm_lossy;
 	struct LOSSY_INFO *p;
 	uint32_t total_lossy_size = 0;
 
@@ -1037,18 +1037,18 @@ static int init_lossy_info(void)
 		}
 
 		/* Allocate bitmap for entry */
-		bm = kzalloc(sizeof(struct BM), GFP_KERNEL);
-		if (bm == NULL)
+		bm_lossy = kzalloc(sizeof(struct BM), GFP_KERNEL);
+		if (bm_lossy == NULL)
 			break;
 
-		ret = alloc_bm(bm, start, end - start, MM_CO_ORDER);
+		ret = alloc_bm(bm_lossy, start, end - start, MM_CO_ORDER);
 		if (ret)
 			break;
 
 		pr_debug("Support entry %d with format 0x%x.\n", i, fmt);
 
 		lossy_entries[i].fmt = fmt;
-		lossy_entries[i].bm_lossy = bm;
+		lossy_entries[i].bm_lossy = bm_lossy;
 
 		p++;
 	}
@@ -1401,7 +1401,7 @@ static struct platform_driver ipmmu_driver = {
 	.probe = ipmmu_probe,
 	.remove = ipmmu_remove,
 };
-#endif
+#endif /* MMNGR_IPMMU_PMB_ENABLE */
 
 static const struct file_operations fops = {
 	.owner		= THIS_MODULE,
