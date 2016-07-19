@@ -268,7 +268,7 @@ static phys_addr_t pmb_virt2phys(unsigned int ipmmu_virt_addr);
 #define IMPEAR_OFFSET		(0x20C)
 #define IMPMBAn_OFFSET(n)	(0x280 + 0x4  * n)
 #define IMPMBDn_OFFSET(n)	(0x2C0 + 0x4  * n)
-#define MAX_UTLB		(48)
+#define MAX_UTLB		(32)
 #define IMUCTRn_OFFSET(n)	(0x300 + 0x10 * n)
 
 #define REG_SIZE		IMUCTRn_OFFSET(MAX_UTLB)
