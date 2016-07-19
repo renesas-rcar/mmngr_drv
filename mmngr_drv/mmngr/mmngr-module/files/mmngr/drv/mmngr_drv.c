@@ -935,11 +935,15 @@ static int pmb_create_phys2virt_map(void)
 			"/reserved-memory/linux,cma",
 			mm_common_reserve_addr, mm_common_reserve_size,
 			&table_count);
+	if (ret)
+		return ret;
 
 	ret = __pmb_create_phys2virt_map(
 			"/reserved-memory/linux,multimedia",
 			mm_kernel_reserve_addr, mm_kernel_reserve_size,
 			&table_count);
+	if (ret)
+		return ret;
 
 	ret = __pmb_create_phys2virt_map(
 			"/reserved-memory/linux,lossy_decompress",
