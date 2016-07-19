@@ -745,6 +745,7 @@ static int validate_memory_map(void)
 		pr_warn("The size (0x%x) of OMXBUF is over "\
 			"the kernel reserved size (0x%llx) for Multimedia.\n",
 			MM_OMXBUF_SIZE, mm_kernel_reserve_size);
+		pr_warn("Failed to initialize MMNGR.\n");
 		ret = -1;
 	}
 
@@ -763,6 +764,7 @@ static int validate_memory_map(void)
 				MM_SSPBUF_ADDR, MM_SSPBUF_ADDR + MM_SSPBUF_SIZE,
 				mm_kernel_reserve_addr,
 				mm_kernel_reserve_addr + mm_kernel_reserve_size);
+			pr_warn("Not able to allocate buffer in SSPBUF.\n");
 
 			is_sspbuf_valid = false;
 		}
@@ -770,6 +772,7 @@ static int validate_memory_map(void)
 		pr_warn("The total size (0x%lx) of %s is over "\
 			"the kernel reserved size (0x%llx) for Multimedia.\n",
 			buf_size, buf_name, mm_kernel_reserve_size);
+		pr_warn("Not able to allocate buffer in SSPBUF.\n");
 
 		is_sspbuf_valid = false;
 	}
