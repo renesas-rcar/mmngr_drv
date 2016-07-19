@@ -877,12 +877,18 @@ static int __pmb_create_phys2virt_map(char *dt_path, u64 phys_addr,
 	unsigned int table_type, virt_addr, size_in_MB, table_entry, impmbd_sz;
 	u64 tmp_size, tmp_phys_addr;
 
-	/* Sanity test for allocated memory */
+	/* Sanity tests */
 	size_in_MB = size >> 20;
 
 	if (size_in_MB % 16) {
 		pr_warn("Reserved area %s (%dMB) is not multiple of 16MB",
 						dt_path, size_in_MB);
+		return -1;
+	}
+
+	if (phys_addr % SZ_16M) {
+		pr_warn("Physical start address (0x%llx) of reserved area %s"\
+			" is not 16MB aligned.", phys_addr, dt_path);
 		return -1;
 	}
 
