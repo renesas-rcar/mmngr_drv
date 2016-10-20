@@ -66,7 +66,6 @@
 #include <linux/miscdevice.h>
 #include <linux/platform_device.h>
 #include <linux/dma-buf.h>
-#include <linux/version.h>
 
 #include "mmngr_buf_private.h"
 
