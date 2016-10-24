@@ -69,7 +69,6 @@
 #include <linux/platform_device.h>
 #include <linux/miscdevice.h>
 #include <linux/version.h>
-#include <linux/dma-attrs.h>
 #include <linux/dma-contiguous.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
