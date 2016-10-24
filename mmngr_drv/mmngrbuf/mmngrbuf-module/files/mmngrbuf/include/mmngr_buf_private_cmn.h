@@ -1,7 +1,7 @@
 /*************************************************************************/ /*
  MMNGR
 
- Copyright (C) 2015-2016 Renesas Electronics Corporation
+ Copyright (C) 2016 Renesas Electronics Corporation
 
  License        Dual MIT/GPLv2
 
@@ -58,49 +58,21 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */ /*************************************************************************/
-#ifndef __MMNGR_BUF_PRIVATE_H__
-#define __MMNGR_BUF_PRIVATE_H__
+#ifndef __MMNGR_BUF_PRIVATE_CMN_H__
+#define __MMNGR_BUF_PRIVATE_CMN_H__
 
-#include "mmngr_buf_private_cmn.h"
+#define DEVFILE "/dev/rgnmmbuf"
 
-struct MM_BUF_DRVDATA {
-	struct device *mm_buf_dev;
-};
-
-struct MM_BUF_PRIVATE {
+struct MM_BUF_PARAM {
 	size_t		size;
 	unsigned int	hard_addr;
 	int		buf;
-	struct dma_buf	*dma_buf;
-	struct dma_buf_attachment *attach;
-	struct sg_table *sgt;
 };
 
-#define DEVNAME		"rgnmmbuf"
-#define DRVNAME		DEVNAME
-#define CLSNAME		DEVNAME
-#define DEVNUM		1
+#define MM_IOC_MAGIC 'd'
+#define MM_IOC_EXPORT_START	_IOWR(MM_IOC_MAGIC, 0, struct MM_BUF_PARAM)
+#define MM_IOC_EXPORT_END	_IOWR(MM_IOC_MAGIC, 1, struct MM_BUF_PARAM)
+#define MM_IOC_IMPORT_START	_IOWR(MM_IOC_MAGIC, 2, struct MM_BUF_PARAM)
+#define MM_IOC_IMPORT_END	_IOWR(MM_IOC_MAGIC, 3, struct MM_BUF_PARAM)
 
-#ifdef CONFIG_COMPAT
-struct COMPAT_MM_BUF_PARAM {
-	compat_size_t	size;
-	compat_uint_t	hard_addr;
-	compat_int_t	buf;
-};
-
-#define COMPAT_MM_IOC_EXPORT_START \
-		_IOWR(MM_IOC_MAGIC, 0, struct COMPAT_MM_BUF_PARAM)
-#define COMPAT_MM_IOC_EXPORT_END \
-		_IOWR(MM_IOC_MAGIC, 1, struct COMPAT_MM_BUF_PARAM)
-#define COMPAT_MM_IOC_IMPORT_START \
-		_IOWR(MM_IOC_MAGIC, 2, struct COMPAT_MM_BUF_PARAM)
-#define COMPAT_MM_IOC_IMPORT_END \
-		_IOWR(MM_IOC_MAGIC, 3, struct COMPAT_MM_BUF_PARAM)
-#endif
-
-static int mm_ioc_export_start(int __user *arg, struct MM_BUF_PRIVATE *priv);
-static int mm_ioc_export_end(int __user *arg, struct MM_BUF_PRIVATE *priv);
-static int mm_ioc_import_start(int __user *arg, struct MM_BUF_PRIVATE *priv);
-static int mm_ioc_import_end(struct MM_BUF_PRIVATE *priv);
-
-#endif	/* __MMNGR_BUF_PRIVATE_H__ */
+#endif	/* __MMNGR_BUF_PRIVATE_CMN_H__ */

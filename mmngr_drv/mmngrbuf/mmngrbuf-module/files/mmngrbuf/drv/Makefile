@@ -7,7 +7,11 @@ ccflags-y	+= -I$(KERNELSRC)/include
 
 all:
 	$(CP) ../include/mmngr_buf_private.h $(KERNELSRC)/include
-	make -C $(KERNELDIR) M=$(PWD) modules
+	$(CP) ../include/mmngr_buf_private_cmn.h $(KERNELSRC)/include
+	$(CP) ../include/mmngr_buf_private_cmn.h $(INCSHARED)
+	make -C $(KERNELSRC) M=$(PWD) modules
 clean:
-	make -C $(KERNELDIR) M=$(PWD) clean
+	make -C $(KERNELSRC) M=$(PWD) clean
+	rm -f $(KERNELSRC)/include/mmngr_buf_private.h
+	rm -f $(KERNELSRC)/include/mmngr_buf_private_cmn.h
 
