@@ -1,7 +1,7 @@
 /*************************************************************************/ /*
  MMNGR
 
- Copyright (C) 2015-2016 Renesas Electronics Corporation
+ Copyright (C) 2016 Renesas Electronics Corporation
 
  License        Dual MIT/GPLv2
 
@@ -58,9 +58,12 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */ /*************************************************************************/
-#ifndef	__MMNGR_PUBLIC_H__
-#define __MMNGR_PUBLIC_H__
+#ifndef	__MMNGR_PUBLIC_CMN_H__
+#define __MMNGR_PUBLIC_CMN_H__
 
-#include "mmngr_public_cmn.h"
+#define MM_KERNELHEAP	0
+#define MM_CARVEOUT	1
+#define MM_CARVEOUT_SSP	3
+#define MM_CARVEOUT_LOSSY	4
 
-#endif	/* __MMNGR_PUBLIC_H__ */
+#endif	/* __MMNGR_PUBLIC_CMN_H__ */

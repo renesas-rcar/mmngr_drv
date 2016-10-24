@@ -1,7 +1,7 @@
 /*************************************************************************/ /*
  MMNGR
 
- Copyright (C) 2015-2016 Renesas Electronics Corporation
+ Copyright (C) 2016 Renesas Electronics Corporation
 
  License        Dual MIT/GPLv2
 
@@ -58,9 +58,27 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */ /*************************************************************************/
-#ifndef	__MMNGR_PUBLIC_H__
-#define __MMNGR_PUBLIC_H__
+#ifndef __MMNGR_PRIVATE_CMN_H__
+#define __MMNGR_PRIVATE_CMN_H__
 
-#include "mmngr_public_cmn.h"
+#define DEVFILE "/dev/rgnmm"
 
-#endif	/* __MMNGR_PUBLIC_H__ */
+struct MM_PARAM {
+	size_t size;
+	unsigned long long	phy_addr;
+	unsigned int	hard_addr;
+	unsigned long	user_virt_addr;
+	unsigned long	kernel_virt_addr;
+	unsigned int flag;
+};
+
+#define MM_IOC_MAGIC 'm'
+#define MM_IOC_ALLOC	_IOWR(MM_IOC_MAGIC, 0, struct MM_PARAM)
+#define MM_IOC_FREE	_IOWR(MM_IOC_MAGIC, 1, struct MM_PARAM)
+#define MM_IOC_SET	_IOWR(MM_IOC_MAGIC, 2, struct MM_PARAM)
+#define MM_IOC_GET	_IOWR(MM_IOC_MAGIC, 3, struct MM_PARAM)
+#define MM_IOC_ALLOC_CO	_IOWR(MM_IOC_MAGIC, 4, struct MM_PARAM)
+#define MM_IOC_FREE_CO	_IOWR(MM_IOC_MAGIC, 5, struct MM_PARAM)
+#define MM_IOC_SHARE	_IOWR(MM_IOC_MAGIC, 6, struct MM_PARAM)
+
+#endif	/* __MMNGR_PRIVATE_CMN_H__ */

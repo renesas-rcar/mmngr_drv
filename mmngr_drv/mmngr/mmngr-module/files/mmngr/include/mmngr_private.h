@@ -61,7 +61,7 @@
 #ifndef __MMNGR_PRIVATE_H__
 #define __MMNGR_PRIVATE_H__
 
-#define DEVFILE "/dev/rgnmm"
+#include "mmngr_private_cmn.h"
 
 struct MM_DRVDATA {
 	struct device *mm_dev;
@@ -69,15 +69,6 @@ struct MM_DRVDATA {
 	unsigned long	reserve_size;
 	phys_addr_t	reserve_phy_addr;
 	unsigned long	reserve_kernel_virt_addr;
-};
-
-struct MM_PARAM {
-	size_t		size;
-	phys_addr_t	phy_addr;
-	unsigned int	hard_addr;
-	unsigned long	user_virt_addr;
-	unsigned long	kernel_virt_addr;
-	unsigned int	flag;
 };
 
 struct BM {
@@ -158,15 +149,6 @@ struct rcar_ipmmu_data {
 #endif
 
 extern struct cma *rcar_gen3_dma_contiguous;
-
-#define MM_IOC_MAGIC 'm'
-#define MM_IOC_ALLOC	_IOWR(MM_IOC_MAGIC, 0, struct MM_PARAM)
-#define MM_IOC_FREE	_IOWR(MM_IOC_MAGIC, 1, struct MM_PARAM)
-#define MM_IOC_SET	_IOWR(MM_IOC_MAGIC, 2, struct MM_PARAM)
-#define MM_IOC_GET	_IOWR(MM_IOC_MAGIC, 3, struct MM_PARAM)
-#define MM_IOC_ALLOC_CO	_IOWR(MM_IOC_MAGIC, 4, struct MM_PARAM)
-#define MM_IOC_FREE_CO	_IOWR(MM_IOC_MAGIC, 5, struct MM_PARAM)
-#define MM_IOC_SHARE	_IOWR(MM_IOC_MAGIC, 6, struct MM_PARAM)
 
 #ifdef CONFIG_COMPAT
 struct COMPAT_MM_PARAM {
