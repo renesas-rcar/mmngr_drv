@@ -21,3 +21,7 @@ MMNGR v0.7
 	1. Add IPMMU(PMB) registers backup/restore to support System Suspend-to-RAM.
 	2. Various fixes and improvement for MMNGR operation.
 	3. Update MIT license.
+
+MMNGR v0.8
+	1. Move duplicate definitions in user header files and driver header files
+           to common header files.
