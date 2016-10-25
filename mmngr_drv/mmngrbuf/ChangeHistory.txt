@@ -1,6 +1,12 @@
 MMNGRBUF v0.1
 	1. Initial Gen3 support.
+
 MMNGRBUF v0.2
 	1. Change MMNGRBUF driver into a DT-compatible driver.
+
 MMNGRBUF v0.3
 	1. Deal with dma_buf_ops changes in kernel v4.6.
+
+MMNGRBUF v0.4
+	1. Move duplicate definitions in user header files and driver header files
+           to common header files.
