@@ -824,7 +824,7 @@ static phys_addr_t pmb_virt2phys(unsigned int ipmmu_virt_addr)
 		cpu_phys_addr = ipmmu_virt_addr;
 	} else if ((ipmmu_virt_addr >= CMA_2ND_VIRT_BASE_ADDR) &&
 		(ipmmu_virt_addr < (CMA_2ND_VIRT_BASE_ADDR
-					+ mm_kernel_reserve_addr))) {
+					+ mm_kernel_reserve_size))) {
 		cpu_phys_addr = ((ipmmu_virt_addr - CMA_2ND_VIRT_BASE_ADDR)
 				+ mm_kernel_reserve_addr);
 	} else {
