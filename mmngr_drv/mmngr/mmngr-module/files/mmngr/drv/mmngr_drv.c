@@ -73,6 +73,7 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_device.h>
+#include <linux/of_reserved_mem.h>
 #include <linux/sizes.h>
 
 #include "mmngr_public.h"
@@ -83,6 +84,7 @@ static struct BM		bm;
 static struct BM		bm_ssp;
 static struct LOSSY_DATA	lossy_entries[16];
 static struct MM_DRVDATA	*mm_drvdata;
+struct cma			*mm_cma_area;
 static u64			mm_common_reserve_addr;
 static u64			mm_common_reserve_size;
 static u64			mm_kernel_reserve_addr;
@@ -1496,8 +1498,8 @@ static int mm_probe(struct platform_device *pdev)
 
 	/* Handler for mem alloc in 2nd CMA area */
 	p->mm_dev_reserve = dev;
+	of_reserved_mem_device_init(p->mm_dev_reserve);
 
-	mmngr_dev_set_cma_area(p->mm_dev_reserve, rcar_gen3_dma_contiguous);
 	pkernel_virt_addr = dma_alloc_coherent(p->mm_dev_reserve,
 					mm_kernel_reserve_size,
 					(dma_addr_t *)&phy_addr,
@@ -1513,6 +1515,7 @@ static int mm_probe(struct platform_device *pdev)
 		(unsigned long)phy_addr + mm_kernel_reserve_size - 1);
 
 	/* Handler for mem alloc in 1st CMA area */
+	mm_cma_area = dev->cma_area;
 	dev->cma_area = NULL;
 	p->mm_dev = dev;
 	mm_drvdata = p;
@@ -1547,7 +1550,7 @@ static int mm_remove(struct platform_device *pdev)
 	free_bm(&bm);
 
 	mmngr_dev_set_cma_area(mm_drvdata->mm_dev_reserve,
-				rcar_gen3_dma_contiguous);
+				mm_cma_area);
 	dma_free_coherent(mm_drvdata->mm_dev_reserve,
 			mm_drvdata->reserve_size,
 			(void *)mm_drvdata->reserve_kernel_virt_addr,
