@@ -1503,6 +1503,11 @@ static int mm_probe(struct platform_device *pdev)
 					mm_kernel_reserve_size,
 					(dma_addr_t *)&phy_addr,
 					GFP_KERNEL);
+	if (pkernel_virt_addr == NULL) {
+		pr_err("MMD mm_init ERROR\n");
+		return -1;
+	}
+
 	p->reserve_size = mm_kernel_reserve_size;
 	p->reserve_kernel_virt_addr = (unsigned long)pkernel_virt_addr;
 	p->reserve_phy_addr = (unsigned long)phy_addr;
