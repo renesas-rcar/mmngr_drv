@@ -25,3 +25,10 @@ MMNGR v0.7
 MMNGR v0.8
 	1. Move duplicate definitions in user header files and driver header files
            to common header files.
+
+MMNGR v0.9
+	1. Deal with dma-attrs.h removal in kernel 4.9.
+	2. Change method to get MMP reserved area.
+	3. Improve error handling in initialization flow.
+	4. Minor cleanup in source code comment and unused header file.
+	5. Correct the logic of virt2phy() function.
