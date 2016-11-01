@@ -10,3 +10,6 @@ MMNGRBUF v0.3
 MMNGRBUF v0.4
 	1. Move duplicate definitions in user header files and driver header files
            to common header files.
+
+MMNGRBUF v0.5
+	1. Minor cleanup in unused header file.
