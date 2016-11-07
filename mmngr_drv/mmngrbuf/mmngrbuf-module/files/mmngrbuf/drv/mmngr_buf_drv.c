@@ -89,18 +89,21 @@ static int close(struct inode *inode, struct file *file)
 
 	priv = file->private_data;
 
-	if (priv->sgt) {
-		pr_err("unmap@close\n");
-		dma_buf_unmap_attachment(priv->attach,
-			priv->sgt, DMA_BIDIRECTIONAL);
-	}
+	if (priv) {
+		if (priv->sgt) {
+			pr_err("unmap@close\n");
+			dma_buf_unmap_attachment(priv->attach,
+				priv->sgt, DMA_BIDIRECTIONAL);
+		}
 
-	if (priv->attach) {
-		pr_err("detach@close\n");
-		dma_buf_detach(priv->dma_buf, priv->attach);
-	}
+		if (priv->attach) {
+			pr_err("detach@close\n");
+			dma_buf_detach(priv->dma_buf, priv->attach);
+		}
 
-	kfree(priv);
+		kfree(priv);
+		file->private_data = NULL;
+	}
 
 	return 0;
 }
