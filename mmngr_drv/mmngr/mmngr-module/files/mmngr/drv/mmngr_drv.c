@@ -1146,17 +1146,20 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 				break;
 		}
 
-		for (k = 0; k < pmb_p2v_mapping.map_count; k++) {
-			pr_debug("k=%d: impmba 0x%08x impmbd 0x%08x\n",
-				  k, p2v_mapping[k].impmba,
-				  p2v_mapping[k].impmbd);
+		if (j < reg_count) /* Found IMPMBA0 */
+			for (k = 0; k < pmb_p2v_mapping.map_count; k++) {
+				pr_debug("k=%d: impmba 0x%08x impmbd 0x%08x\n",
+					k, p2v_mapping[k].impmba,
+					p2v_mapping[k].impmbd);
 
-			iowrite32(IMPMBAn_V_BIT | p2v_mapping[k].impmba,
-				virt_addr + ipmmu_reg[j].reg_offset);
-			iowrite32(IMPMBDn_V_BIT | p2v_mapping[k].impmbd,
-				virt_addr + ipmmu_reg[j+1].reg_offset);
-			j += 2; /* Move to next PMB entry */
-		}
+				iowrite32(IMPMBAn_V_BIT | p2v_mapping[k].impmba,
+					virt_addr + ipmmu_reg[j].reg_offset);
+				iowrite32(IMPMBDn_V_BIT | p2v_mapping[k].impmbd,
+					virt_addr + ipmmu_reg[j+1].reg_offset);
+				j += 2; /* Move to next PMB entry */
+			}
+		else
+			ret = -1;
 
 	} else if (handling == CLEAR_PMB_AREA) { /* Clear PMB area for IPMMU */
 		for (j = 0; j < reg_count; j++) {
@@ -1164,11 +1167,16 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 				break;
 		}
 
-		for (k = 0; k < pmb_p2v_mapping.map_count; k++) {
-			iowrite32(0x0, virt_addr + ipmmu_reg[j].reg_offset);
-			iowrite32(0x0, virt_addr + ipmmu_reg[j+1].reg_offset);
-			j += 2; /* Move to next PMB entry */
-		}
+		if (j < reg_count) /* Found IMPMBA0 */
+			for (k = 0; k < pmb_p2v_mapping.map_count; k++) {
+				iowrite32(0x0, virt_addr +
+					 ipmmu_reg[j].reg_offset);
+				iowrite32(0x0, virt_addr +
+					 ipmmu_reg[j+1].reg_offset);
+				j += 2; /* Move to next PMB entry */
+			}
+		else
+			ret = -1;
 
 	} else if (handling == BACKUP_PMB_REGS) { /* Backup IPMMU(PMB) regs */
 		for (j = 0; j < reg_count; j++) {
@@ -1176,22 +1184,26 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 				break;
 		}
 
-		for (k = 0; k < pmb_p2v_mapping.map_count; k++) {
-			/* For IMPMBAn */
-			ipmmu_reg[j].reg_val = ioread32(virt_addr +
-						ipmmu_reg[j].reg_offset);
-			pr_debug("%s: reg value 0x%08x\n",
-				  ipmmu_reg[j].reg_name, ipmmu_reg[j].reg_val);
+		if (j < reg_count) /* Found IMPMBA0 */
+			for (k = 0; k < pmb_p2v_mapping.map_count; k++) {
+				/* For IMPMBAn */
+				ipmmu_reg[j].reg_val = ioread32(virt_addr +
+						       ipmmu_reg[j].reg_offset);
+				pr_debug("%s: reg value 0x%08x\n",
+					ipmmu_reg[j].reg_name,
+					ipmmu_reg[j].reg_val);
 
-			/* For IMPMBDn */
-			ipmmu_reg[j+1].reg_val = ioread32(virt_addr +
+				/* For IMPMBDn */
+				ipmmu_reg[j+1].reg_val = ioread32(virt_addr +
 						ipmmu_reg[j+1].reg_offset);
-			pr_debug("%s: reg value 0x%08x\n",
-				  ipmmu_reg[j+1].reg_name,
-				  ipmmu_reg[j+1].reg_val);
+				pr_debug("%s: reg value 0x%08x\n",
+					  ipmmu_reg[j+1].reg_name,
+					  ipmmu_reg[j+1].reg_val);
 
-			j += 2; /* Move to next PMB entry */
-		}
+				j += 2; /* Move to next PMB entry */
+			}
+		else
+			ret = -1;
 
 	} else if (handling == RESTORE_PMB_REGS) { /* Restore IPMMU(PMB) regs */
 		for (j = 0; j < reg_count; j++) {
@@ -1199,26 +1211,28 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 				break;
 		}
 
-		for (k = 0; k < pmb_p2v_mapping.map_count; k++) {
-			/* For IMPMBAn */
-			iowrite32(ipmmu_reg[j].reg_val,
-				virt_addr + ipmmu_reg[j].reg_offset);
-			pr_debug("%s: reg value 0x%08x\n",
-				  ipmmu_reg[j].reg_name,
-				  ioread32(virt_addr +
-				      ipmmu_reg[j].reg_offset));
+		if (j < reg_count) /* Found IMPMBA0 */
+			for (k = 0; k < pmb_p2v_mapping.map_count; k++) {
+				/* For IMPMBAn */
+				iowrite32(ipmmu_reg[j].reg_val,
+					virt_addr + ipmmu_reg[j].reg_offset);
+				pr_debug("%s: reg value 0x%08x\n",
+					ipmmu_reg[j].reg_name,
+					ioread32(virt_addr +
+					ipmmu_reg[j].reg_offset));
 
-			/* For IMPMBDn */
-			iowrite32(ipmmu_reg[j+1].reg_val,
-					virt_addr + ipmmu_reg[j+1].reg_offset);
-			pr_debug("%s: reg value 0x%08x\n",
-				  ipmmu_reg[j+1].reg_name,
-				  ioread32(virt_addr +
-				      ipmmu_reg[j+1].reg_offset));
+				/* For IMPMBDn */
+				iowrite32(ipmmu_reg[j+1].reg_val,
+					 virt_addr + ipmmu_reg[j+1].reg_offset);
+				pr_debug("%s: reg value 0x%08x\n",
+					ipmmu_reg[j+1].reg_name,
+					ioread32(virt_addr +
+					ipmmu_reg[j+1].reg_offset));
 
-			j += 2; /* Move to next PMB entry */
-		}
-
+				j += 2; /* Move to next PMB entry */
+			}
+		else
+			ret = -1;
 
 	} else if (handling == PRINT_PMB_DEBUG) { /* Print PMB status info. */
 		for (j = 0; j < reg_count; j++) {
