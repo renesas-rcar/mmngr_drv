@@ -1018,8 +1018,8 @@ static int init_lossy_info(void)
 	for (i = 0; i < 16; i++) {
 		/* Validate the entry */
 		if ((p->magic != MM_LOSSY_INFO_MAGIC)
-		|| ((p->a0 & MM_LOSSY_ENABLE_MASK) == 0)
-		|| (p->a0 == 0) || (p->b0 == 0))
+		|| (p->a0 == 0) || (p->b0 == 0)
+		|| ((p->a0 & MM_LOSSY_ENABLE_MASK) == 0))
 			break;
 
 		/* Parse entry information */
