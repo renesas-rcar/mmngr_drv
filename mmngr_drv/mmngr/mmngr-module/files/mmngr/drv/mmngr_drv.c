@@ -74,6 +74,7 @@
 #include <linux/of_device.h>
 #include <linux/of_reserved_mem.h>
 #include <linux/sizes.h>
+#include <linux/sys_soc.h>
 
 #include "mmngr_public.h"
 #include "mmngr_private.h"
@@ -94,6 +95,13 @@ static bool			have_lossy_entries;
 #ifdef MMNGR_SSP_ENABLE
 static bool			is_sspbuf_valid = false;
 #endif
+
+/* Attribute structs describing Salvator-X revisions */
+/* H3 WS1.0 and WS1.1 */
+static const struct soc_device_attribute r8a7795es1[]  = {
+	{ .soc_id = "r8a7795", .revision = "ES1.*" },
+	{}
+};
 
 #ifdef MMNGR_IPMMU_PMB_ENABLE
 /* IPMMU (PMB mode) */
@@ -154,23 +162,60 @@ static struct hw_register ipmmu_ip_regs[] = {
 	 */
 };
 
-/* R-Car H3 (R8A7795) */
-static struct ip_master r8a7795_ipmmuvc0_masters[] = {
+/* R-Car H3 (R8A7795 ES1.x) */
+static struct ip_master r8a7795es1_ipmmuvc0_masters[] = {
 	{"FCP-CS", 0},
 };
 
-static struct rcar_ipmmu r8a7795_ipmmuvc0 = {
+static struct rcar_ipmmu r8a7795es1_ipmmuvc0 = {
 	.ipmmu_name	= "IPMMUVC0",
 	.base_addr	= IPMMUVC0_BASE,
 	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
-	.masters_count	= ARRAY_SIZE(r8a7795_ipmmuvc0_masters),
+	.masters_count	= ARRAY_SIZE(r8a7795es1_ipmmuvc0_masters),
 	.ipmmu_reg	= ipmmu_ip_regs,
-	.ip_masters	= r8a7795_ipmmuvc0_masters,
+	.ip_masters	= r8a7795es1_ipmmuvc0_masters,
 };
 
-static struct ip_master r8a7795_ipmmuvc1_masters[] = {
+static struct ip_master r8a7795es1_ipmmuvc1_masters[] = {
 	{"FCP-CI ch0",	4},
 	{"FCP-CI ch1",	5},
+};
+
+static struct rcar_ipmmu r8a7795es1_ipmmuvc1 = {
+	.ipmmu_name	= "IPMMUVC1",
+	.base_addr	= IPMMUVC1_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7795es1_ipmmuvc1_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7795es1_ipmmuvc1_masters,
+};
+
+static struct ip_master r8a7795es1_ipmmuvp_masters[] = {
+	{"FCP-F ch0",	0},
+	{"FCP-F ch1",	1},
+	{"FCP-F ch2",	2},
+};
+
+static struct rcar_ipmmu r8a7795es1_ipmmuvp = {
+	.ipmmu_name	= "IPMMUVP",
+	.base_addr	= IPMMUVP_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7795es1_ipmmuvp_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7795es1_ipmmuvp_masters,
+};
+
+static struct rcar_ipmmu *r8a7795es1_ipmmu[] = {
+	&r8a7795es1_ipmmuvp,
+	&r8a7795es1_ipmmuvc0,
+	&r8a7795es1_ipmmuvc1,
+	NULL, /* End of list */
+};
+
+/* R-Car H3 (R8A7795 ES2.0) */
+static struct ip_master r8a7795_ipmmuvc1_masters[] = {
+	{"FCP-CS osid0", 8},
+	{"FCP-CS osid4", 12},
 };
 
 static struct rcar_ipmmu r8a7795_ipmmuvc1 = {
@@ -182,24 +227,35 @@ static struct rcar_ipmmu r8a7795_ipmmuvc1 = {
 	.ip_masters	= r8a7795_ipmmuvc1_masters,
 };
 
-static struct ip_master r8a7795_ipmmuvp_masters[] = {
+static struct ip_master r8a7795_ipmmuvp0_masters[] = {
 	{"FCP-F ch0",	0},
-	{"FCP-F ch1",	1},
-	{"FCP-F ch2",	2},
 };
 
-static struct rcar_ipmmu r8a7795_ipmmuvp = {
-	.ipmmu_name	= "IPMMUVP",
-	.base_addr	= IPMMUVP_BASE,
+static struct rcar_ipmmu r8a7795_ipmmuvp0 = {
+	.ipmmu_name	= "IPMMUVP0",
+	.base_addr	= IPMMUVP0_BASE,
 	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
-	.masters_count	= ARRAY_SIZE(r8a7795_ipmmuvp_masters),
+	.masters_count	= ARRAY_SIZE(r8a7795_ipmmuvp0_masters),
 	.ipmmu_reg	= ipmmu_ip_regs,
-	.ip_masters	= r8a7795_ipmmuvp_masters,
+	.ip_masters	= r8a7795_ipmmuvp0_masters,
+};
+
+static struct ip_master r8a7795_ipmmuvp1_masters[] = {
+	{"FCP-F ch1",	1},
+};
+
+static struct rcar_ipmmu r8a7795_ipmmuvp1 = {
+	.ipmmu_name	= "IPMMUVP1",
+	.base_addr	= IPMMUVP1_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7795_ipmmuvp1_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7795_ipmmuvp1_masters,
 };
 
 static struct rcar_ipmmu *r8a7795_ipmmu[] = {
-	&r8a7795_ipmmuvp,
-	&r8a7795_ipmmuvc0,
+	&r8a7795_ipmmuvp0,
+	&r8a7795_ipmmuvp1,
 	&r8a7795_ipmmuvc1,
 	NULL, /* End of list */
 };
@@ -1360,7 +1416,10 @@ static int ipmmu_probe(struct platform_device *pdev)
 	if (!data)
 		return -1;
 
-	rcar_gen3_ipmmu = data->ipmmu_data;
+	if (soc_device_match(r8a7795es1))
+		rcar_gen3_ipmmu = r8a7795es1_ipmmu;
+	else
+		rcar_gen3_ipmmu = data->ipmmu_data;
 
 	return 0;
 }

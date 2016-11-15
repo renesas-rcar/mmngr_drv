@@ -242,7 +242,9 @@ static phys_addr_t pmb_virt2phys(unsigned int ipmmu_virt_addr);
 #define IPMMUVC0_BASE		(0xFE6B0000)
 #define IPMMUVC1_BASE		(0xFE6F0000)
 #define IPMMUVP_BASE		(0xFE990000)
-#define IPMMUVI_BASE		(0xFEBD0000)
+/* Available in H3 2.0 */
+#define IPMMUVP0_BASE		IPMMUVP_BASE
+#define IPMMUVP1_BASE		(0xFE980000)
 
 #define MAX_PMB_TABLE		(16)
 #define IMPCTR_OFFSET		(0x200)
