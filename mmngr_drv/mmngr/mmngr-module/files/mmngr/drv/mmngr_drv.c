@@ -84,7 +84,7 @@ static struct BM		bm;
 static struct BM		bm_ssp;
 static struct LOSSY_DATA	lossy_entries[16];
 static struct MM_DRVDATA	*mm_drvdata;
-struct cma			*mm_cma_area;
+static struct cma		*mm_cma_area;
 static u64			mm_common_reserve_addr;
 static u64			mm_common_reserve_size;
 static u64			mm_kernel_reserve_addr;
@@ -811,7 +811,8 @@ static int validate_memory_map(void)
 
 	if (mm_kernel_reserve_size >= buf_size) {
 		if ((MM_SSPBUF_ADDR >= mm_kernel_reserve_addr) &&
-		    (MM_SSPBUF_ADDR <= (mm_kernel_reserve_addr + mm_kernel_reserve_size
+		    (MM_SSPBUF_ADDR <= (mm_kernel_reserve_addr
+					+ mm_kernel_reserve_size
 					- MM_SSPBUF_SIZE))) {
 			is_sspbuf_valid = true;
 		} else {
@@ -819,7 +820,8 @@ static int validate_memory_map(void)
 				"the kernel reserved size (0x%llx - 0x%llx) for Multimedia.\n",
 				MM_SSPBUF_ADDR, MM_SSPBUF_ADDR + MM_SSPBUF_SIZE,
 				mm_kernel_reserve_addr,
-				mm_kernel_reserve_addr + mm_kernel_reserve_size);
+				mm_kernel_reserve_addr
+				+ mm_kernel_reserve_size);
 			pr_warn("Not able to allocate buffer in SSPBUF.\n");
 
 			is_sspbuf_valid = false;
@@ -1538,12 +1540,13 @@ static int mm_probe(struct platform_device *pdev)
 
 #ifdef MMNGR_SSP_ENABLE
 	if (is_sspbuf_valid) {
-		ret = alloc_bm(&bm_ssp, MM_SSPBUF_ADDR, MM_SSPBUF_SIZE, MM_CO_ORDER);
+		ret = alloc_bm(&bm_ssp, MM_SSPBUF_ADDR, MM_SSPBUF_SIZE,
+				MM_CO_ORDER);
 		if (ret) {
 			pr_err("MMD mm_probe ERROR\n");
 			return -1;
+		}
 	}
-    }
 #endif
 
 	ret = init_lossy_info();
@@ -1618,7 +1621,7 @@ static int mm_remove(struct platform_device *pdev)
 		free_bm(&bm_ssp);
 #endif
 
-	for (i=0; i < 16; i++) {
+	for (i = 0; i < 16; i++) {
 		if (lossy_entries[i].bm_lossy == NULL)
 			break;
 		free_bm(lossy_entries[i].bm_lossy);
