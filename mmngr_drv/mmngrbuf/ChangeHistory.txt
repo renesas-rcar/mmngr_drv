@@ -13,3 +13,6 @@ MMNGRBUF v0.4
 
 MMNGRBUF v0.5
 	1. Minor cleanup in unused header file.
+
+MMNGRBUF v0.6
+	1. Add lacking error handling for close().
