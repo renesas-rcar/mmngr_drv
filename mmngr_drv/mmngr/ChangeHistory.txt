@@ -32,3 +32,9 @@ MMNGR v0.9
 	3. Improve error handling in initialization flow.
 	4. Minor cleanup in source code comment and unused header file.
 	5. Correct the logic of virt2phy() function.
+
+MMNGR v0.10
+	1. Add lacking error handling for __handle_registers().
+	2. Re-order entry condition validation in init_lossy_info().
+	3. Add IPMMU support for H3 WS2.0.
+	4. Clean up source code and fix style warnings.
