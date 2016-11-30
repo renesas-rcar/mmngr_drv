@@ -269,11 +269,12 @@ static phys_addr_t pmb_virt2phys(unsigned int ipmmu_virt_addr);
 				| ((phys_addr & UPPER_PPN_MASK) >> 16))
 
 #define MM_OMXBUF_ADDR		(0xC0000000)
+#define MM_LOSSY_ADDR		(0x20000000)
 
 /* IPMMU virtual address */
 #define CMA_1ST_VIRT_BASE_ADDR	(mm_common_reserve_addr)
 #define CMA_2ND_VIRT_BASE_ADDR	(MM_OMXBUF_ADDR)
-#define CMA_LOSSY_VIRT_BASE_ADDR	(mm_lossybuf_addr)
+#define CMA_LOSSY_VIRT_BASE_ADDR	(MM_LOSSY_ADDR)
 
 #endif /* MMNGR_IPMMU_PMB_ENABLE */
 
