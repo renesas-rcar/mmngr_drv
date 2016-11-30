@@ -869,18 +869,20 @@ static phys_addr_t pmb_virt2phys(unsigned int ipmmu_virt_addr)
 	phys_addr_t cpu_phys_addr;
 
 	/*
-	 * For Common CMA and CMA for Lossy,
+	 * For Common CMA,
 	 *   assign physical address equal to virtual address.
-	 * For CMA for MMP,
+	 * For CMA for MMP and CMA for Lossy
 	 *   do address conversion.
 	 */
-	if (((ipmmu_virt_addr >= CMA_LOSSY_VIRT_BASE_ADDR) &&
-	     (ipmmu_virt_addr < (CMA_LOSSY_VIRT_BASE_ADDR
-				 + mm_lossybuf_size))) ||
-	    ((ipmmu_virt_addr >= CMA_1ST_VIRT_BASE_ADDR) &&
+	if ((ipmmu_virt_addr >= CMA_1ST_VIRT_BASE_ADDR) &&
 	     (ipmmu_virt_addr < (CMA_1ST_VIRT_BASE_ADDR
-				 + mm_common_reserve_size)))) {
+				 + mm_common_reserve_size))) {
 		cpu_phys_addr = ipmmu_virt_addr;
+	} else if ((ipmmu_virt_addr >= CMA_LOSSY_VIRT_BASE_ADDR) &&
+	     (ipmmu_virt_addr < (CMA_LOSSY_VIRT_BASE_ADDR
+				 + mm_lossybuf_size))) {
+		cpu_phys_addr = ((ipmmu_virt_addr - CMA_LOSSY_VIRT_BASE_ADDR)
+				+ mm_lossybuf_addr);
 	} else if ((ipmmu_virt_addr >= CMA_2ND_VIRT_BASE_ADDR) &&
 		(ipmmu_virt_addr < (CMA_2ND_VIRT_BASE_ADDR
 					+ mm_kernel_reserve_size))) {
