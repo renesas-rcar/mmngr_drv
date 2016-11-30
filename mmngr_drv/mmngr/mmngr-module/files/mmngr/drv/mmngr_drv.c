@@ -1062,7 +1062,8 @@ static int init_lossy_info(void)
 {
 	int ret = 0;
 	void __iomem *mem;
-	uint32_t i, start, end, fmt;
+	uint32_t i, fmt;
+	uint64_t start, end;
 	struct BM *bm_lossy;
 	struct LOSSY_INFO *p;
 	uint32_t total_lossy_size = 0;
@@ -1091,7 +1092,7 @@ static int init_lossy_info(void)
 		/* Validate kernel reserved mem for Lossy */
 		if (i == 0 && start != mm_lossybuf_addr) {
 			pr_warn("Mismatch between the start address (0x%llx) "\
-				"of reserved mem and start address (0x%x) "\
+				"of reserved mem and start address (0x%llx) "\
 				"of Lossy enabled area.\n", mm_lossybuf_addr,
 				start);
 			break;
