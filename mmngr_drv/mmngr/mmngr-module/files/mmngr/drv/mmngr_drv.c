@@ -1067,6 +1067,9 @@ static int init_lossy_info(void)
 	struct BM *bm_lossy;
 	struct LOSSY_INFO *p;
 	uint32_t total_lossy_size = 0;
+#ifdef MMNGR_IPMMU_PMB_ENABLE
+	uint32_t offset = 0;
+#endif
 
 	have_lossy_entries = false;
 
@@ -1112,7 +1115,12 @@ static int init_lossy_info(void)
 		if (bm_lossy == NULL)
 			break;
 
+#ifndef MMNGR_IPMMU_PMB_ENABLE
 		ret = alloc_bm(bm_lossy, start, end - start, MM_CO_ORDER);
+#else
+		ret = alloc_bm(bm_lossy, MM_LOSSY_ADDR + offset,
+			end - start, MM_CO_ORDER);
+#endif
 		if (ret)
 			break;
 
@@ -1121,6 +1129,9 @@ static int init_lossy_info(void)
 		lossy_entries[i].fmt = fmt;
 		lossy_entries[i].bm_lossy = bm_lossy;
 
+#ifdef MMNGR_IPMMU_PMB_ENABLE
+		offset = total_lossy_size;
+#endif
 		p++;
 	}
 
