@@ -167,6 +167,9 @@ struct COMPAT_MM_PARAM {
 #define COMPAT_MM_IOC_ALLOC_CO	_IOWR(MM_IOC_MAGIC, 4, struct COMPAT_MM_PARAM)
 #define COMPAT_MM_IOC_FREE_CO	_IOWR(MM_IOC_MAGIC, 5, struct COMPAT_MM_PARAM)
 #define COMPAT_MM_IOC_SHARE	_IOWR(MM_IOC_MAGIC, 6, struct COMPAT_MM_PARAM)
+
+static long compat_ioctl(struct file *file, unsigned int cmd,
+			unsigned long arg);
 #endif
 
 #define DEVNAME		"rgnmm"
@@ -196,6 +199,15 @@ static int find_lossy_entry(unsigned int flag, int *entry);
 static int _parse_reserved_mem_dt(char *dt_path,
 			u64 *addr, u64 *size);
 static int parse_reserved_mem_dt(void);
+static int open(struct inode *inode, struct file *file);
+static int close(struct inode *inode, struct file *file);
+static long ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+static int mmap(struct file *filp, struct vm_area_struct *vma);
+static int mm_probe(struct platform_device *pdev);
+static int mm_remove(struct platform_device *pdev);
+static int mm_init(void);
+static void mm_exit(void);
+
 #ifdef MMNGR_IPMMU_PMB_DISABLE
 static int validate_memory_map(void);
 
@@ -240,6 +252,19 @@ static void pmb_exit(void);
 static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling);
 static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
 static phys_addr_t pmb_virt2phys(unsigned int ipmmu_virt_addr);
+static unsigned int pmb_get_table_type(u64 phys_addr, u64 size);
+static void pmb_update_table_info(struct p2v_map *p2v_map,
+				unsigned int impmbd_sz, u64 phys_addr,
+				unsigned int virt_addr);
+static int __pmb_create_phys2virt_map(char *dt_path, u64 phys_addr, u64 size,
+				unsigned int *table_count);
+static int pmb_create_phys2virt_map(void);
+static void backup_pmb_registers(void);
+static void restore_pmb_registers(void);
+static int ipmmu_probe(struct platform_device *pdev);
+static int ipmmu_remove(struct platform_device *pdev);
+static int mm_ipmmu_suspend(struct device *dev);
+static int mm_ipmmu_resume(struct device *dev);
 
 #define IPMMUVC0_BASE		(0xFE6B0000)
 #define IPMMUVC1_BASE		(0xFE6F0000)
