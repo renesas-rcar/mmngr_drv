@@ -96,8 +96,41 @@ struct COMPAT_MM_BUF_PARAM {
 		_IOWR(MM_IOC_MAGIC, 2, struct COMPAT_MM_BUF_PARAM)
 #define COMPAT_MM_IOC_IMPORT_END \
 		_IOWR(MM_IOC_MAGIC, 3, struct COMPAT_MM_BUF_PARAM)
+
+static long compat_ioctl(struct file *file, unsigned int cmd,
+			unsigned long arg);
 #endif
 
+static int open(struct inode *inode, struct file *file);
+static int close(struct inode *inode, struct file *file);
+static long ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+static int dmabuf_attach(struct dma_buf *buf, struct device *dev,
+			struct dma_buf_attachment *attach);
+static void dmabuf_detach(struct dma_buf *buf,
+			struct dma_buf_attachment *attach);
+static struct sg_table *dmabuf_map_dma_buf(struct dma_buf_attachment *attach,
+					enum dma_data_direction dir);
+static void dmabuf_unmap_dma_buf(struct dma_buf_attachment *attach,
+				struct sg_table *sgt,
+				enum dma_data_direction dir);
+static void dmabuf_release(struct dma_buf *buf);
+static int dmabuf_begin_cpu_access(struct dma_buf *buf,
+				enum dma_data_direction direction);
+static int dmabuf_end_cpu_access(struct dma_buf *buf,
+				enum dma_data_direction direction);
+static void *dmabuf_kmap_atomic(struct dma_buf *buf, unsigned long page);
+static void dmabuf_kunmap_atomic(struct dma_buf *buf, unsigned long page,
+				void *vaddr);
+static void *dmabuf_kmap(struct dma_buf *buf, unsigned long page);
+static void dmabuf_kunmap(struct dma_buf *buf, unsigned long page,
+			void *vaddr);
+static int dmabuf_mmap(struct dma_buf *buf, struct vm_area_struct *vma);
+static void *dmabuf_vmap(struct dma_buf *buf);
+static void dmabuf_vunmap(struct dma_buf *buf, void *vaddr);
+static int mm_probe(struct platform_device *pdev);
+static int mm_remove(struct platform_device *pdev);
+static int mm_init(void);
+static void mm_exit(void);
 static int mm_ioc_export_start(int __user *arg, struct MM_BUF_PRIVATE *priv);
 static int mm_ioc_export_end(int __user *arg, struct MM_BUF_PRIVATE *priv);
 static int mm_ioc_import_start(int __user *arg, struct MM_BUF_PRIVATE *priv);
