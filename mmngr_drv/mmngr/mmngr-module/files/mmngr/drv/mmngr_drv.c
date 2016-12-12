@@ -232,6 +232,7 @@ static struct rcar_ipmmu r8a7795_ipmmuvc1 = {
 
 static struct ip_master r8a7795_ipmmuvp0_masters[] = {
 	{"FCP-F ch0",	0},
+	{"FCP-VI ch0",	8},
 };
 
 static struct rcar_ipmmu r8a7795_ipmmuvp0 = {
@@ -245,6 +246,7 @@ static struct rcar_ipmmu r8a7795_ipmmuvp0 = {
 
 static struct ip_master r8a7795_ipmmuvp1_masters[] = {
 	{"FCP-F ch1",	1},
+	{"FCP-VI ch1",	9},
 };
 
 static struct rcar_ipmmu r8a7795_ipmmuvp1 = {
