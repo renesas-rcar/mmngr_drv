@@ -82,7 +82,7 @@
 static spinlock_t		lock;
 static struct BM		bm;
 static struct BM		bm_ssp;
-static struct LOSSY_DATA	lossy_entries[16];
+static struct LOSSY_DATA	lossy_entries[MAX_LOSSY_ENTRIES];
 static struct MM_DRVDATA	*mm_drvdata;
 static struct cma		*mm_cma_area;
 static u64			mm_common_reserve_addr;
@@ -433,12 +433,12 @@ static int find_lossy_entry(unsigned int flag, int *entry)
 	fmt = ((flag & 0xF0) >> 4) - 1;
 	pr_debug("Requested format 0x%x.\n", fmt);
 
-	for (i = 0; i < 16; i++) {
+	for (i = 0; i < MAX_LOSSY_ENTRIES; i++) {
 		if (lossy_entries[i].fmt == fmt)
 			break;
 	}
 
-	if (i < 16) {
+	if (i < MAX_LOSSY_ENTRIES) {
 		*entry = i;
 		ret = 0;
 		pr_debug("Found entry no.%d\n", i);
@@ -1085,7 +1085,7 @@ static int init_lossy_info(void)
 
 	p = (struct LOSSY_INFO __force *)mem;
 
-	for (i = 0; i < 16; i++) {
+	for (i = 0; i < MAX_LOSSY_ENTRIES; i++) {
 		/* Validate the entry */
 		if ((p->magic != MM_LOSSY_INFO_MAGIC)
 		|| (p->a0 == 0) || (p->b0 == 0)
@@ -1641,7 +1641,7 @@ static int mm_remove(struct platform_device *pdev)
 		free_bm(&bm_ssp);
 #endif
 
-	for (i = 0; i < 16; i++) {
+	for (i = 0; i < MAX_LOSSY_ENTRIES; i++) {
 		if (lossy_entries[i].bm_lossy == NULL)
 			break;
 		free_bm(lossy_entries[i].bm_lossy);

@@ -214,12 +214,14 @@ static int validate_memory_map(void);
 #endif
 #endif
 
+#define MAX_LOSSY_ENTRIES		(16)
 #define MM_LOSSY_INFO_MAGIC		(0x12345678UL)
 #define MM_LOSSY_ADDR_MASK		(0x0003FFFFUL)  /* [17:0] */
 #define MM_LOSSY_FMT_MASK		(0x60000000UL)  /* [30:29] */
 #define MM_LOSSY_ENABLE_MASK		(0x80000000UL)  /* [31] */
 #define MM_LOSSY_SHARED_MEM_ADDR	(0x47FD7000UL)
-#define MM_LOSSY_SHARED_MEM_SIZE	(16 * sizeof(struct LOSSY_INFO))
+#define MM_LOSSY_SHARED_MEM_SIZE	(MAX_LOSSY_ENTRIES \
+					* sizeof(struct LOSSY_INFO))
 
 #if defined(MMNGR_SSP_ENABLE) && defined(MMNGR_IPMMU_PMB_ENABLE)
 #error "Have not support IPMMU(PMB) for SSPBUF yet"
