@@ -38,3 +38,9 @@ MMNGR v0.10
 	2. Re-order entry condition validation in init_lossy_info().
 	3. Add IPMMU support for H3 WS2.0.
 	4. Clean up source code and fix style warnings.
+
+MMNGR v0.11
+	1. Add UTLB for FCP-VI (VSPI) as PMB entry on H3 (WS1.x and WS2.0) and M3.
+	2. Add IPMMU(PMB) support for Lossy area.
+	3. Remove hardcoded number in Lossy processing.
+	4. Add function prototype declaration.
