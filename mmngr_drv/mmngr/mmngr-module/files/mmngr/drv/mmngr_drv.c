@@ -209,7 +209,25 @@ static struct rcar_ipmmu r8a7795es1_ipmmuvp = {
 	.ip_masters	= r8a7795es1_ipmmuvp_masters,
 };
 
+#ifdef MMNGR_SSP_ENABLE
+static struct ip_master r8a7795es1_ipmmusy_masters[] = {
+	{"SSP1",	4},
+};
+
+static struct rcar_ipmmu r8a7795es1_ipmmusy = {
+	.ipmmu_name	= "IPMMUSY",
+	.base_addr	= IPMMUSY_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7795es1_ipmmusy_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7795es1_ipmmusy_masters,
+};
+#endif
+
 static struct rcar_ipmmu *r8a7795es1_ipmmu[] = {
+#ifdef MMNGR_SSP_ENABLE
+	&r8a7795es1_ipmmusy,
+#endif
 	&r8a7795es1_ipmmuvp,
 	&r8a7795es1_ipmmuvc0,
 	&r8a7795es1_ipmmuvc1,
@@ -273,7 +291,25 @@ static struct rcar_ipmmu r8a7795_ipmmuvp1 = {
 	.ip_masters	= r8a7795_ipmmuvp1_masters,
 };
 
+#ifdef MMNGR_SSP_ENABLE
+static struct ip_master r8a7795_ipmmuds1_masters[] = {
+	{"SSP1",	36},
+};
+
+static struct rcar_ipmmu r8a7795_ipmmuds1 = {
+	.ipmmu_name	= "IPMMUDS1",
+	.base_addr	= IPMMUDS1_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7795_ipmmuds1_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7795_ipmmuds1_masters,
+};
+#endif
+
 static struct rcar_ipmmu *r8a7795_ipmmu[] = {
+#ifdef MMNGR_SSP_ENABLE
+	&r8a7795_ipmmuds1,
+#endif
 	&r8a7795_ipmmuvp0,
 	&r8a7795_ipmmuvp1,
 	&r8a7795_ipmmuvc0,
@@ -311,7 +347,25 @@ static struct rcar_ipmmu r8a7796_ipmmuvc0 = {
 	.ip_masters	= r8a7796_ipmmuvc0_masters,
 };
 
+#ifdef MMNGR_SSP_ENABLE
+static struct ip_master r8a7796_ipmmuds1_masters[] = {
+	{"SSP1",	36},
+};
+
+static struct rcar_ipmmu r8a7796_ipmmuds1 = {
+	.ipmmu_name	= "IPMMUDS1",
+	.base_addr	= IPMMUDS1_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7796_ipmmuds1_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7796_ipmmuds1_masters,
+};
+#endif
+
 static struct rcar_ipmmu *r8a7796_ipmmu[] = {
+#ifdef MMNGR_SSP_ENABLE
+	&r8a7796_ipmmuds1,
+#endif
 	&r8a7796_ipmmuvi,
 	&r8a7796_ipmmuvc0,
 	NULL, /* End of list */

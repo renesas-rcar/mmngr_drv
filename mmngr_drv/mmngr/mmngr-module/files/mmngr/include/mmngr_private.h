@@ -241,6 +241,11 @@ static pgdval_t *ipmmu_mmu_pgd;
 #define IPMMUVP0_BASE		IPMMUVP_BASE
 #define IPMMUVP1_BASE		(0xFE980000)
 
+#ifdef MMNGR_SSP_ENABLE
+#define IPMMUSY_BASE		(0xE7730000)
+#define IPMMUDS1_BASE		(0xE7740000)
+#endif
+
 #define EAE			BIT(31)
 #define SH0			(BIT(13) | BIT(12))
 #define ORGN0_BIT10		BIT(10)
