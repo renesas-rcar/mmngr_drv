@@ -269,13 +269,15 @@ static pgdval_t *ipmmu_mmu_pgd;
 #define IMMAIR1n_OFFSET(n)	(0x002c + TTSEL(n))
 #define IMELARn_OFFSET(n)	(0x0030 + TTSEL(n))
 #define IMEUARn_OFFSET(n)	(0x0034 + TTSEL(n))
-#define IMUCTRn_OFFSET(n)	(0x0300 + 0x10 * (n))
+#define IMUCTR0(n)		(0x300 + ((n) * 16))
+#define IMUCTR32(n)		(0x600 + (((n) - 32) * 16))
+#define IMUCTRn_OFFSET(n)	((n) < 32 ? IMUCTR0(n) : IMUCTR32(n))
 #define IMUASIDn_OFFSET(n)	(0x0308 + 0x10 * (n))
 #define IMSCTLR_OFFSET		(0x0500)
 
 #define MAX_UTLB		(48)
 
-#define REG_SIZE		IMUASIDn_OFFSET(MAX_UTLB)
+#define REG_SIZE		IMUCTRn_OFFSET(MAX_UTLB)
 #define IMCTR_VAL		(MMUEN | FLUSH)
 #define IMCTR_MM_VAL		(IMCTR_VAL)
 #define IMTTBCR_VAL		(EAE | SH0 | ORGN0_BIT10 | IRGN0_BIT8 | \
