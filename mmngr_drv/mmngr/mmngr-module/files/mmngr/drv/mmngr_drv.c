@@ -194,6 +194,8 @@ static struct ip_master r8a7795es1_ipmmuvp_masters[] = {
 	{"FCP-F ch0",	0},
 	{"FCP-F ch1",	1},
 	{"FCP-F ch2",	2},
+	{"FCP-VB ch0",	5},
+	{"FCP-VB ch1",	7},
 	{"FCP-VI ch0",	8},
 	{"FCP-VI ch1",	9},
 	{"FCP-VI ch2",	10},
