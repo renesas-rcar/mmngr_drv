@@ -283,6 +283,19 @@ static struct rcar_ipmmu *r8a7795_ipmmu[] = {
 };
 
 /* R-Car M3 (R8A7796) */
+static struct ip_master r8a7796_ipmmuvi_masters[] = {
+	{"FCP-VB",  5},
+};
+
+static struct rcar_ipmmu r8a7796_ipmmuvi = {
+	.ipmmu_name	= "IPMMUVI",
+	.base_addr	= IPMMUVI_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7796_ipmmuvi_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7796_ipmmuvi_masters,
+};
+
 static struct ip_master r8a7796_ipmmuvc0_masters[] = {
 	{"FCP-CI",  4},
 	{"FCP-CS",  8},
@@ -300,6 +313,7 @@ static struct rcar_ipmmu r8a7796_ipmmuvc0 = {
 };
 
 static struct rcar_ipmmu *r8a7796_ipmmu[] = {
+	&r8a7796_ipmmuvi,
 	&r8a7796_ipmmuvc0,
 	NULL, /* End of list */
 };

@@ -266,6 +266,7 @@ static int ipmmu_remove(struct platform_device *pdev);
 static int mm_ipmmu_suspend(struct device *dev);
 static int mm_ipmmu_resume(struct device *dev);
 
+#define IPMMUVI_BASE		(0xFEBD0000)
 #define IPMMUVC0_BASE		(0xFE6B0000)
 #define IPMMUVC1_BASE		(0xFE6F0000)
 #define IPMMUVP_BASE		(0xFE990000)
