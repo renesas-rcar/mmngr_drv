@@ -95,11 +95,20 @@ static bool			have_lossy_entries;
 #ifdef MMNGR_SSP_ENABLE
 static bool			is_sspbuf_valid = false;
 #endif
+#ifdef MMNGR_IPMMU_PMB_ENABLE
+static bool			soc_is_r8a7795;
+#endif
 
 /* Attribute structs describing Salvator-X revisions */
 /* H3 WS1.0 and WS1.1 */
 static const struct soc_device_attribute r8a7795es1[]  = {
 	{ .soc_id = "r8a7795", .revision = "ES1.*" },
+	{}
+};
+
+/* H3 ES2.0 */
+static const struct soc_device_attribute r8a7795[]  = {
+	{ .soc_id = "r8a7795", .revision = "ES2.0" },
 	{}
 };
 
@@ -901,6 +910,7 @@ static int _parse_reserved_mem_dt(char *dt_path,
 static phys_addr_t pmb_virt2phys(unsigned int ipmmu_virt_addr)
 {
 	phys_addr_t cpu_phys_addr;
+	unsigned int lossy_virt_addr;
 
 	/*
 	 * For Common CMA,
@@ -908,14 +918,24 @@ static phys_addr_t pmb_virt2phys(unsigned int ipmmu_virt_addr)
 	 * For CMA for MMP and CMA for Lossy
 	 *   do address conversion.
 	 */
+
+	/*
+	 * In r8a7795 (ES2.0), a virtual address of CMA for Lossy
+	 * is equal to a physical address of that.
+	 */
+	if (soc_is_r8a7795)
+		lossy_virt_addr = mm_lossybuf_addr;
+	else
+		lossy_virt_addr = CMA_LOSSY_VIRT_BASE_ADDR;
+
 	if ((ipmmu_virt_addr >= CMA_1ST_VIRT_BASE_ADDR) &&
 	     (ipmmu_virt_addr < (CMA_1ST_VIRT_BASE_ADDR
 				 + mm_common_reserve_size))) {
 		cpu_phys_addr = ipmmu_virt_addr;
-	} else if ((ipmmu_virt_addr >= CMA_LOSSY_VIRT_BASE_ADDR) &&
-	     (ipmmu_virt_addr < (CMA_LOSSY_VIRT_BASE_ADDR
+	} else if ((ipmmu_virt_addr >= lossy_virt_addr) &&
+	     (ipmmu_virt_addr < (lossy_virt_addr
 				 + mm_lossybuf_size))) {
-		cpu_phys_addr = ((ipmmu_virt_addr - CMA_LOSSY_VIRT_BASE_ADDR)
+		cpu_phys_addr = ((ipmmu_virt_addr - lossy_virt_addr)
 				+ mm_lossybuf_addr);
 	} else if ((ipmmu_virt_addr >= CMA_2ND_VIRT_BASE_ADDR) &&
 		(ipmmu_virt_addr < (CMA_2ND_VIRT_BASE_ADDR
@@ -996,7 +1016,10 @@ static int __pmb_create_phys2virt_map(char *dt_path, u64 phys_addr,
 	} else if (!strcmp(dt_path, "/reserved-memory/linux,multimedia")) {
 		virt_addr = CMA_2ND_VIRT_BASE_ADDR;
 	} else { /* /reserved-memory/linux,lossy_decompress */
-		virt_addr = CMA_LOSSY_VIRT_BASE_ADDR;
+		if (soc_is_r8a7795)
+			virt_addr = mm_lossybuf_addr;
+		else
+			virt_addr = CMA_LOSSY_VIRT_BASE_ADDR;
 	}
 
 	table_entry = *table_count;
@@ -1152,8 +1175,12 @@ static int init_lossy_info(void)
 #ifndef MMNGR_IPMMU_PMB_ENABLE
 		ret = alloc_bm(bm_lossy, start, end - start, MM_CO_ORDER);
 #else
-		ret = alloc_bm(bm_lossy, MM_LOSSY_ADDR + offset,
-			end - start, MM_CO_ORDER);
+		if (soc_is_r8a7795)
+			ret = alloc_bm(bm_lossy, start + offset,
+					end - start, MM_CO_ORDER);
+		else
+			ret = alloc_bm(bm_lossy, MM_LOSSY_ADDR + offset,
+					end - start, MM_CO_ORDER);
 #endif
 		if (ret)
 			break;
@@ -1471,6 +1498,11 @@ static int ipmmu_probe(struct platform_device *pdev)
 		rcar_gen3_ipmmu = r8a7795es1_ipmmu;
 	else
 		rcar_gen3_ipmmu = data->ipmmu_data;
+
+	if (soc_device_match(r8a7795))
+		soc_is_r8a7795 = true;
+	else
+		soc_is_r8a7795 = false;
 
 	return 0;
 }
