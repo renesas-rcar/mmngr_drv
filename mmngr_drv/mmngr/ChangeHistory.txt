@@ -44,3 +44,9 @@ MMNGR v0.11
 	2. Add IPMMU(PMB) support for Lossy area.
 	3. Remove hardcoded number in Lossy processing.
 	4. Add function prototype declaration.
+
+MMNGR v0.12
+	1. Add IPMMU-VC0 setting for H3 ES2.0.
+	2. Add UTLB for FCP-VB (VSPB) as PMB entry on H3 WS1.x and M3.
+	3. Revert UTLB for FCP-VI (VSPI) as PMB entry on H3 ES2.0.
+	4. Change the translation policy in Lossy area on H3 ES2.0.
