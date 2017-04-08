@@ -886,7 +886,7 @@ static int validate_memory_map(void)
 static int _parse_reserved_mem_dt(char *dt_path,
 			u64 *addr, u64 *size)
 {
-	const u32 *regaddr_p;
+	const __be32 *regaddr_p;
 	struct device_node *node;
 
 	node = of_find_node_by_path(dt_path);
