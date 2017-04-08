@@ -496,9 +496,6 @@ static int mm_ioc_alloc_co_select(int __user *in, struct MM_PARAM *out)
 	int		ret = 0;
 	int		entry = 0;
 	struct MM_PARAM	tmp;
-	struct device	*mm_dev;
-
-	mm_dev = mm_drvdata->mm_dev;
 
 	if (copy_from_user(&tmp, in, sizeof(struct MM_PARAM))) {
 		pr_err("%s EFAULT\n", __func__);
@@ -546,10 +543,7 @@ static void mm_ioc_free_co(struct BM *pb, struct MM_PARAM *p)
 
 static void mm_ioc_free_co_select(struct MM_PARAM *p)
 {
-	struct device	*mm_dev;
 	int		entry = 0;
-
-	mm_dev = mm_drvdata->mm_dev;
 
 	if (p->flag == MM_CARVEOUT)
 		mm_ioc_free_co(&bm, p);
