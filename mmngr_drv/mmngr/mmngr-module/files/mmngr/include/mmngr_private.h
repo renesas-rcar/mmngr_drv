@@ -1,7 +1,7 @@
 /*************************************************************************/ /*
  MMNGR
 
- Copyright (C) 2015-2016 Renesas Electronics Corporation
+ Copyright (C) 2015-2017 Renesas Electronics Corporation
 
  License        Dual MIT/GPLv2
 
@@ -89,65 +89,6 @@ struct LOSSY_DATA {
 	struct BM *bm_lossy;
 };
 
-#ifdef MMNGR_IPMMU_PMB_ENABLE
-enum {
-	DO_IOREMAP,
-	DO_IOUNMAP,
-	ENABLE_PMB,
-	DISABLE_PMB,
-	ENABLE_UTLB,
-	DISABLE_UTLB,
-	SET_PMB_AREA,
-	CLEAR_PMB_AREA,
-	BACKUP_PMB_REGS,
-	RESTORE_PMB_REGS,
-	PRINT_PMB_DEBUG,
-};
-
-struct hw_register {
-	char *reg_name;
-	unsigned int reg_offset;
-	unsigned int reg_val;
-};
-
-struct ip_master {
-	char *ip_name;
-	unsigned int utlb_no;
-};
-
-struct p2v_map {
-	unsigned int impmba;
-	unsigned int impmbd;
-};
-
-struct pmb_p2v_map {
-	struct p2v_map *p2v_map;
-	unsigned int map_count;
-};
-
-struct pmb_table_map {
-	unsigned long table_size;
-	unsigned int multiple_of_16;
-	unsigned int impmbd_sz;
-	unsigned int table_count;
-};
-
-struct rcar_ipmmu {
-	char *ipmmu_name;
-	unsigned int base_addr;
-	void __iomem *virt_addr;
-	unsigned int reg_count;
-	unsigned int masters_count;
-	struct hw_register *ipmmu_reg;
-	struct ip_master *ip_masters;
-};
-
-struct rcar_ipmmu_data {
-	struct rcar_ipmmu **ipmmu_data;
-};
-
-#endif
-
 extern struct cma *rcar_gen3_dma_contiguous;
 
 #ifdef CONFIG_COMPAT
@@ -208,23 +149,19 @@ static int mm_remove(struct platform_device *pdev);
 static int mm_init(void);
 static void mm_exit(void);
 
-#ifdef MMNGR_IPMMU_PMB_DISABLE
 static int validate_memory_map(void);
 
 #if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
 #define MM_OMXBUF_ADDR		(0x70000000UL)
 #define MM_OMXBUF_SIZE		(256 * 1024 * 1024)
-#endif
-#endif /* MMNGR_IPMMU_PMB_DISABLE */
-
-#define	MM_CO_ORDER		(12)
 
 #ifdef MMNGR_SSP_ENABLE
-#if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
 #define MM_SSPBUF_ADDR		(0x53000000UL)
 #define MM_SSPBUF_SIZE		(16 * 1024 * 1024)
 #endif
-#endif
+#endif /* defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK) */
+
+#define	MM_CO_ORDER		(12)
 
 #define MAX_LOSSY_ENTRIES		(16)
 #define MM_LOSSY_INFO_MAGIC		(0x12345678UL)
@@ -234,76 +171,4 @@ static int validate_memory_map(void);
 #define MM_LOSSY_SHARED_MEM_ADDR	(0x47FD7000UL)
 #define MM_LOSSY_SHARED_MEM_SIZE	(MAX_LOSSY_ENTRIES \
 					* sizeof(struct LOSSY_INFO))
-
-#if defined(MMNGR_SSP_ENABLE) && defined(MMNGR_IPMMU_PMB_ENABLE)
-#error "Have not support IPMMU(PMB) for SSPBUF yet"
-#endif
-
-#ifdef MMNGR_IPMMU_PMB_ENABLE
-/* IPMMU (PMB mode) */
-static int map_register(void);
-static void unmap_register(void);
-static void enable_pmb(void);
-static void enable_utlb(void);
-static void set_pmb_area(void);
-static void pmb_debuginfo(void);
-static int pmb_init(void);
-static void pmb_exit(void);
-static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling);
-static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
-static phys_addr_t pmb_virt2phys(unsigned int ipmmu_virt_addr);
-static unsigned int pmb_get_table_type(u64 phys_addr, u64 size);
-static void pmb_update_table_info(struct p2v_map *p2v_map,
-				unsigned int impmbd_sz, u64 phys_addr,
-				unsigned int virt_addr);
-static int __pmb_create_phys2virt_map(char *dt_path, u64 phys_addr, u64 size,
-				unsigned int *table_count);
-static int pmb_create_phys2virt_map(void);
-static void backup_pmb_registers(void);
-static void restore_pmb_registers(void);
-static int ipmmu_probe(struct platform_device *pdev);
-static int ipmmu_remove(struct platform_device *pdev);
-static int mm_ipmmu_suspend(struct device *dev);
-static int mm_ipmmu_resume(struct device *dev);
-
-#define IPMMUVI_BASE		(0xFEBD0000)
-#define IPMMUVC0_BASE		(0xFE6B0000)
-#define IPMMUVC1_BASE		(0xFE6F0000)
-#define IPMMUVP_BASE		(0xFE990000)
-/* Available in H3 2.0 */
-#define IPMMUVP0_BASE		IPMMUVP_BASE
-#define IPMMUVP1_BASE		(0xFE980000)
-
-#define MAX_PMB_TABLE		(16)
-#define IMPCTR_OFFSET		(0x200)
-#define IMPSTR_OFFSET		(0x208)
-#define IMPEAR_OFFSET		(0x20C)
-#define IMPMBAn_OFFSET(n)	(0x280 + 0x4  * n)
-#define IMPMBDn_OFFSET(n)	(0x2C0 + 0x4  * n)
-#define MAX_UTLB		(32)
-#define IMUCTRn_OFFSET(n)	(0x300 + 0x10 * n)
-
-#define REG_SIZE		IMUCTRn_OFFSET(MAX_UTLB)
-
-#define IMPCTR_VAL		(0x00000001)
-#define IMUCTR_VAL		(0x00000081)
-#define IMPMBAn_V_BIT		(0x00000100)
-#define IMPMBDn_V_BIT		(0x00000100)
-
-#define LOWER_PPN_MASK		(0x00FF000000UL)
-#define UPPER_PPN_MASK		(0xFF00000000UL)
-#define IMPMBA_VALUE(virt_addr)	(virt_addr)
-#define IMPMBD_VALUE(phys_addr) ((phys_addr & LOWER_PPN_MASK) \
-				| ((phys_addr & UPPER_PPN_MASK) >> 16))
-
-#define MM_OMXBUF_ADDR		(0xC0000000)
-#define MM_LOSSY_ADDR		(0x20000000)
-
-/* IPMMU virtual address */
-#define CMA_1ST_VIRT_BASE_ADDR	(mm_common_reserve_addr)
-#define CMA_2ND_VIRT_BASE_ADDR	(MM_OMXBUF_ADDR)
-#define CMA_LOSSY_VIRT_BASE_ADDR	(MM_LOSSY_ADDR)
-
-#endif /* MMNGR_IPMMU_PMB_ENABLE */
-
 #endif	/* __MMNGR_PRIVATE_H__ */

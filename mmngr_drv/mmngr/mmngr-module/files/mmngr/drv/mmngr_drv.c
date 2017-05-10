@@ -1,7 +1,7 @@
 /*************************************************************************/ /*
  MMNGR
 
- Copyright (C) 2015-2016 Renesas Electronics Corporation
+ Copyright (C) 2015-2017 Renesas Electronics Corporation
 
  License        Dual MIT/GPLv2
 
@@ -94,237 +94,6 @@ static u64			mm_lossybuf_size;
 static bool			have_lossy_entries;
 #ifdef MMNGR_SSP_ENABLE
 static bool			is_sspbuf_valid = false;
-#endif
-#ifdef MMNGR_IPMMU_PMB_ENABLE
-static bool			soc_is_r8a7795;
-#endif
-
-/* Attribute structs describing Salvator-X revisions */
-/* H3 WS1.0 and WS1.1 */
-static const struct soc_device_attribute r8a7795es1[]  = {
-	{ .soc_id = "r8a7795", .revision = "ES1.*" },
-	{}
-};
-
-/* H3 ES2.0 */
-static const struct soc_device_attribute r8a7795[]  = {
-	{ .soc_id = "r8a7795", .revision = "ES2.0" },
-	{}
-};
-
-#ifdef MMNGR_IPMMU_PMB_ENABLE
-/* IPMMU (PMB mode) */
-static struct p2v_map p2v_mapping[MAX_PMB_TABLE];
-static struct pmb_p2v_map pmb_p2v_mapping = {
-	.p2v_map = p2v_mapping,
-	/* Actual map_count will be set during MMNGR init */
-};
-
-static struct rcar_ipmmu **rcar_gen3_ipmmu;
-
-static struct pmb_table_map pmb_table_mapping[] = {
-	{SZ_512M,	32, 0x90, 0}, /* 512MB table */
-	{SZ_128M,	 8, 0x80, 0}, /* 128MB table */
-	{SZ_64M,	 4, 0x10, 0}, /*  64MB table */
-	{SZ_16M,	 1, 0x00, 0}, /*  16MB table */
-};
-
-static struct hw_register ipmmu_ip_regs[] = {
-	{"IMPCTR",	IMPCTR_OFFSET,		0},
-	{"IMPSTR",	IMPSTR_OFFSET,		0},
-	{"IMPEAR",	IMPEAR_OFFSET,		0},
-	{"IMPMBA0",	IMPMBAn_OFFSET(0),	0},
-	{"IMPMBD0",	IMPMBDn_OFFSET(0),	0},
-	{"IMPMBA1",	IMPMBAn_OFFSET(1),	0},
-	{"IMPMBD1",	IMPMBDn_OFFSET(1),	0},
-	{"IMPMBA2",	IMPMBAn_OFFSET(2),	0},
-	{"IMPMBD2",	IMPMBDn_OFFSET(2),	0},
-	{"IMPMBA3",	IMPMBAn_OFFSET(3),	0},
-	{"IMPMBD3",	IMPMBDn_OFFSET(3),	0},
-	{"IMPMBA4",	IMPMBAn_OFFSET(4),	0},
-	{"IMPMBD4",	IMPMBDn_OFFSET(4),	0},
-	{"IMPMBA5",	IMPMBAn_OFFSET(5),	0},
-	{"IMPMBD5",	IMPMBDn_OFFSET(5),	0},
-	{"IMPMBA6",	IMPMBAn_OFFSET(6),	0},
-	{"IMPMBD6",	IMPMBDn_OFFSET(6),	0},
-	{"IMPMBA7",	IMPMBAn_OFFSET(7),	0},
-	{"IMPMBD7",	IMPMBDn_OFFSET(7),	0},
-	{"IMPMBA8",	IMPMBAn_OFFSET(8),	0},
-	{"IMPMBD8",	IMPMBDn_OFFSET(8),	0},
-	{"IMPMBA9",	IMPMBAn_OFFSET(9),	0},
-	{"IMPMBD9",	IMPMBDn_OFFSET(9),	0},
-	{"IMPMBA10",	IMPMBAn_OFFSET(10),	0},
-	{"IMPMBD10",	IMPMBDn_OFFSET(10),	0},
-	{"IMPMBA11",	IMPMBAn_OFFSET(11),	0},
-	{"IMPMBD11",	IMPMBDn_OFFSET(11),	0},
-	{"IMPMBA12",	IMPMBAn_OFFSET(12),	0},
-	{"IMPMBD12",	IMPMBDn_OFFSET(12),	0},
-	{"IMPMBA13",	IMPMBAn_OFFSET(13),	0},
-	{"IMPMBD13",	IMPMBDn_OFFSET(13),	0},
-	{"IMPMBA14",	IMPMBAn_OFFSET(14),	0},
-	{"IMPMBD14",	IMPMBDn_OFFSET(14),	0},
-	{"IMPMBA15",	IMPMBAn_OFFSET(15),	0},
-	{"IMPMBD15",	IMPMBDn_OFFSET(15),	0},
-	/*
-	 * IMUCTRn_OFFSET(n) is not defined here
-	 * The register is calculated base on IP utlb_no value
-	 */
-};
-
-/* R-Car H3 (R8A7795 ES1.x) */
-static struct ip_master r8a7795es1_ipmmuvc0_masters[] = {
-	{"FCP-CS", 0},
-};
-
-static struct rcar_ipmmu r8a7795es1_ipmmuvc0 = {
-	.ipmmu_name	= "IPMMUVC0",
-	.base_addr	= IPMMUVC0_BASE,
-	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
-	.masters_count	= ARRAY_SIZE(r8a7795es1_ipmmuvc0_masters),
-	.ipmmu_reg	= ipmmu_ip_regs,
-	.ip_masters	= r8a7795es1_ipmmuvc0_masters,
-};
-
-static struct ip_master r8a7795es1_ipmmuvc1_masters[] = {
-	{"FCP-CI ch0",	4},
-	{"FCP-CI ch1",	5},
-};
-
-static struct rcar_ipmmu r8a7795es1_ipmmuvc1 = {
-	.ipmmu_name	= "IPMMUVC1",
-	.base_addr	= IPMMUVC1_BASE,
-	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
-	.masters_count	= ARRAY_SIZE(r8a7795es1_ipmmuvc1_masters),
-	.ipmmu_reg	= ipmmu_ip_regs,
-	.ip_masters	= r8a7795es1_ipmmuvc1_masters,
-};
-
-static struct ip_master r8a7795es1_ipmmuvp_masters[] = {
-	{"FCP-F ch0",	0},
-	{"FCP-F ch1",	1},
-	{"FCP-F ch2",	2},
-	{"FCP-VB ch0",	5},
-	{"FCP-VB ch1",	7},
-	{"FCP-VI ch0",	8},
-	{"FCP-VI ch1",	9},
-	{"FCP-VI ch2",	10},
-};
-
-static struct rcar_ipmmu r8a7795es1_ipmmuvp = {
-	.ipmmu_name	= "IPMMUVP",
-	.base_addr	= IPMMUVP_BASE,
-	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
-	.masters_count	= ARRAY_SIZE(r8a7795es1_ipmmuvp_masters),
-	.ipmmu_reg	= ipmmu_ip_regs,
-	.ip_masters	= r8a7795es1_ipmmuvp_masters,
-};
-
-static struct rcar_ipmmu *r8a7795es1_ipmmu[] = {
-	&r8a7795es1_ipmmuvp,
-	&r8a7795es1_ipmmuvc0,
-	&r8a7795es1_ipmmuvc1,
-	NULL, /* End of list */
-};
-
-/* R-Car H3 (R8A7795 ES2.0) */
-static struct ip_master r8a7795_ipmmuvc0_masters[] = {
-	{"FCP-CS osid0", 8},
-	{"FCP-CS osid4", 12},
-};
-
-static struct rcar_ipmmu r8a7795_ipmmuvc0 = {
-	.ipmmu_name	= "IPMMUVC0",
-	.base_addr	= IPMMUVC0_BASE,
-	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
-	.masters_count	= ARRAY_SIZE(r8a7795_ipmmuvc0_masters),
-	.ipmmu_reg	= ipmmu_ip_regs,
-	.ip_masters	= r8a7795_ipmmuvc0_masters,
-};
-
-static struct ip_master r8a7795_ipmmuvc1_masters[] = {
-	{"FCP-CS osid0", 8},
-	{"FCP-CS osid4", 12},
-};
-
-static struct rcar_ipmmu r8a7795_ipmmuvc1 = {
-	.ipmmu_name	= "IPMMUVC1",
-	.base_addr	= IPMMUVC1_BASE,
-	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
-	.masters_count	= ARRAY_SIZE(r8a7795_ipmmuvc1_masters),
-	.ipmmu_reg	= ipmmu_ip_regs,
-	.ip_masters	= r8a7795_ipmmuvc1_masters,
-};
-
-static struct ip_master r8a7795_ipmmuvp0_masters[] = {
-	{"FCP-F ch0",	0},
-};
-
-static struct rcar_ipmmu r8a7795_ipmmuvp0 = {
-	.ipmmu_name	= "IPMMUVP0",
-	.base_addr	= IPMMUVP0_BASE,
-	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
-	.masters_count	= ARRAY_SIZE(r8a7795_ipmmuvp0_masters),
-	.ipmmu_reg	= ipmmu_ip_regs,
-	.ip_masters	= r8a7795_ipmmuvp0_masters,
-};
-
-static struct ip_master r8a7795_ipmmuvp1_masters[] = {
-	{"FCP-F ch1",	1},
-};
-
-static struct rcar_ipmmu r8a7795_ipmmuvp1 = {
-	.ipmmu_name	= "IPMMUVP1",
-	.base_addr	= IPMMUVP1_BASE,
-	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
-	.masters_count	= ARRAY_SIZE(r8a7795_ipmmuvp1_masters),
-	.ipmmu_reg	= ipmmu_ip_regs,
-	.ip_masters	= r8a7795_ipmmuvp1_masters,
-};
-
-static struct rcar_ipmmu *r8a7795_ipmmu[] = {
-	&r8a7795_ipmmuvp0,
-	&r8a7795_ipmmuvp1,
-	&r8a7795_ipmmuvc0,
-	&r8a7795_ipmmuvc1,
-	NULL, /* End of list */
-};
-
-/* R-Car M3 (R8A7796) */
-static struct ip_master r8a7796_ipmmuvi_masters[] = {
-	{"FCP-VB",  5},
-};
-
-static struct rcar_ipmmu r8a7796_ipmmuvi = {
-	.ipmmu_name	= "IPMMUVI",
-	.base_addr	= IPMMUVI_BASE,
-	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
-	.masters_count	= ARRAY_SIZE(r8a7796_ipmmuvi_masters),
-	.ipmmu_reg	= ipmmu_ip_regs,
-	.ip_masters	= r8a7796_ipmmuvi_masters,
-};
-
-static struct ip_master r8a7796_ipmmuvc0_masters[] = {
-	{"FCP-CI",  4},
-	{"FCP-CS",  8},
-	{"FCP-F",  16},
-	{"FCP-VI", 19},
-};
-
-static struct rcar_ipmmu r8a7796_ipmmuvc0 = {
-	.ipmmu_name	= "IPMMUVC0",
-	.base_addr	= IPMMUVC0_BASE,
-	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
-	.masters_count	= ARRAY_SIZE(r8a7796_ipmmuvc0_masters),
-	.ipmmu_reg	= ipmmu_ip_regs,
-	.ip_masters	= r8a7796_ipmmuvc0_masters,
-};
-
-static struct rcar_ipmmu *r8a7796_ipmmu[] = {
-	&r8a7796_ipmmuvi,
-	&r8a7796_ipmmuvc0,
-	NULL, /* End of list */
-};
-
 #endif
 
 static int mm_ioc_alloc(struct device *mm_dev,
@@ -805,13 +574,7 @@ static int mmap(struct file *filp, struct vm_area_struct *vma)
 		return -EINVAL;
 
 	off = vma->vm_pgoff << PAGE_SHIFT;
-#ifdef MMNGR_IPMMU_PMB_DISABLE
 	start = p->phy_addr;
-#else
-	start = pmb_virt2phys((unsigned int)p->phy_addr);
-	if (!start)
-		return -EINVAL;
-#endif
 
 	len = PAGE_ALIGN((start & ~PAGE_MASK) + p->size);
 
@@ -832,7 +595,6 @@ static int mmap(struct file *filp, struct vm_area_struct *vma)
 	return 0;
 }
 
-#ifdef MMNGR_IPMMU_PMB_DISABLE
 static int validate_memory_map(void)
 {
 	int ret = 0;
@@ -881,7 +643,6 @@ static int validate_memory_map(void)
 #endif
 	return ret;
 }
-#endif
 
 static int _parse_reserved_mem_dt(char *dt_path,
 			u64 *addr, u64 *size)
@@ -905,181 +666,6 @@ static int _parse_reserved_mem_dt(char *dt_path,
 
 	return 0;
 }
-
-#ifdef MMNGR_IPMMU_PMB_ENABLE
-static phys_addr_t pmb_virt2phys(unsigned int ipmmu_virt_addr)
-{
-	phys_addr_t cpu_phys_addr;
-	unsigned int lossy_virt_addr;
-
-	/*
-	 * For Common CMA,
-	 *   assign physical address equal to virtual address.
-	 * For CMA for MMP and CMA for Lossy
-	 *   do address conversion.
-	 */
-
-	/*
-	 * In r8a7795 (ES2.0), a virtual address of CMA for Lossy
-	 * is equal to a physical address of that.
-	 */
-	if (soc_is_r8a7795)
-		lossy_virt_addr = mm_lossybuf_addr;
-	else
-		lossy_virt_addr = CMA_LOSSY_VIRT_BASE_ADDR;
-
-	if ((ipmmu_virt_addr >= CMA_1ST_VIRT_BASE_ADDR) &&
-	     (ipmmu_virt_addr < (CMA_1ST_VIRT_BASE_ADDR
-				 + mm_common_reserve_size))) {
-		cpu_phys_addr = ipmmu_virt_addr;
-	} else if ((ipmmu_virt_addr >= lossy_virt_addr) &&
-	     (ipmmu_virt_addr < (lossy_virt_addr
-				 + mm_lossybuf_size))) {
-		cpu_phys_addr = ((ipmmu_virt_addr - lossy_virt_addr)
-				+ mm_lossybuf_addr);
-	} else if ((ipmmu_virt_addr >= CMA_2ND_VIRT_BASE_ADDR) &&
-		(ipmmu_virt_addr < (CMA_2ND_VIRT_BASE_ADDR
-					+ mm_kernel_reserve_size))) {
-		cpu_phys_addr = ((ipmmu_virt_addr - CMA_2ND_VIRT_BASE_ADDR)
-				+ mm_kernel_reserve_addr);
-	} else {
-		pr_err("Invalid IPMMU virtual address 0x%08x\n",
-					ipmmu_virt_addr);
-		return 0;
-	}
-
-	return cpu_phys_addr;
-}
-
-static unsigned int pmb_get_table_type(u64 phys_addr, u64 size)
-{
-	unsigned int i;
-
-	/*
-	 * Find the 1st table type
-	 * which the phys start address is aligned to its table size.
-	 */
-	for (i = 0; i < ARRAY_SIZE(pmb_table_mapping); i++) {
-		if ((phys_addr % pmb_table_mapping[i].table_size) ||
-			(size < pmb_table_mapping[i].table_size))
-			continue;
-		else
-			break;
-	}
-
-	pr_debug("%s: Select table size %ldMB\n",
-		  __func__, pmb_table_mapping[i].table_size >> 20);
-
-	return i;
-}
-
-static void pmb_update_table_info(struct p2v_map *p2v_map,
-			unsigned int impmbd_sz, u64 phys_addr,
-					unsigned int virt_addr)
-{
-	p2v_map->impmba = IMPMBA_VALUE(virt_addr);
-	p2v_map->impmbd = IMPMBD_VALUE(phys_addr) | impmbd_sz;
-
-	pr_debug("%s: virt_addr 0x%08x phys_addr 0x%llx\n",
-	__func__, virt_addr, phys_addr);
-
-
-	pr_debug("%s: IMPMBA_VALUE(virt_addr) 0x%08x IMPMBD_VALUE(phys_addr) 0x%llx\n",
-	__func__, IMPMBA_VALUE(virt_addr), IMPMBD_VALUE(phys_addr));
-}
-
-static int __pmb_create_phys2virt_map(char *dt_path, u64 phys_addr,
-				u64 size, unsigned int *table_count)
-{
-	int ret = 0;
-	unsigned int table_type, virt_addr, size_in_MB, table_entry, impmbd_sz;
-	u64 tmp_size, tmp_phys_addr;
-
-	/* Sanity tests */
-	size_in_MB = size >> 20;
-
-	if (size_in_MB % 16) {
-		pr_warn("Reserved area %s (%dMB) is not multiple of 16MB",
-						dt_path, size_in_MB);
-		return -1;
-	}
-
-	if (phys_addr % SZ_16M) {
-		pr_warn("Physical start address (0x%llx) of reserved area %s"\
-			" is not 16MB aligned.", phys_addr, dt_path);
-		return -1;
-	}
-
-	/* Set the base IPMMU virt address */
-	if (!strcmp(dt_path, "/reserved-memory/linux,cma")) {
-		virt_addr = CMA_1ST_VIRT_BASE_ADDR;
-	} else if (!strcmp(dt_path, "/reserved-memory/linux,multimedia")) {
-		virt_addr = CMA_2ND_VIRT_BASE_ADDR;
-	} else { /* /reserved-memory/linux,lossy_decompress */
-		if (soc_is_r8a7795)
-			virt_addr = mm_lossybuf_addr;
-		else
-			virt_addr = CMA_LOSSY_VIRT_BASE_ADDR;
-	}
-
-	table_entry = *table_count;
-	tmp_size = size;
-	tmp_phys_addr = phys_addr;
-
-	while (tmp_size > 0) {
-		if (table_entry == MAX_PMB_TABLE) {
-			pr_err("Over 16 PMB tables. 16 is maximum.");
-			ret = -1;
-		}
-
-		/* Proceed a table entry */
-		table_type = pmb_get_table_type(tmp_phys_addr, tmp_size);
-		impmbd_sz = pmb_table_mapping[table_type].impmbd_sz;
-
-		pmb_update_table_info(&p2v_mapping[table_entry],
-					impmbd_sz, tmp_phys_addr, virt_addr);
-
-		/* Update for next table entry */
-		tmp_phys_addr += pmb_table_mapping[table_type].table_size;
-		virt_addr += pmb_table_mapping[table_type].table_size;
-		tmp_size -= pmb_table_mapping[table_type].table_size;
-
-		table_entry++;
-	}
-
-	pmb_p2v_mapping.map_count += (table_entry - *table_count);
-	*table_count = table_entry;
-
-	return ret;
-}
-
-static int pmb_create_phys2virt_map(void)
-{
-	int ret = 0;
-	unsigned int table_count = 0;
-
-	ret = __pmb_create_phys2virt_map(
-			"/reserved-memory/linux,cma",
-			mm_common_reserve_addr, mm_common_reserve_size,
-			&table_count);
-	if (ret)
-		return ret;
-
-	ret = __pmb_create_phys2virt_map(
-			"/reserved-memory/linux,multimedia",
-			mm_kernel_reserve_addr, mm_kernel_reserve_size,
-			&table_count);
-	if (ret)
-		return ret;
-
-	ret = __pmb_create_phys2virt_map(
-			"/reserved-memory/linux,lossy_decompress",
-			mm_lossybuf_addr, mm_lossybuf_size, &table_count);
-
-	return ret;
-}
-
-#endif
 
 static int parse_reserved_mem_dt(void)
 {
@@ -1124,9 +710,6 @@ static int init_lossy_info(void)
 	struct BM *bm_lossy;
 	struct LOSSY_INFO *p;
 	uint32_t total_lossy_size = 0;
-#ifdef MMNGR_IPMMU_PMB_ENABLE
-	uint32_t offset = 0;
-#endif
 
 	have_lossy_entries = false;
 
@@ -1172,16 +755,7 @@ static int init_lossy_info(void)
 		if (bm_lossy == NULL)
 			break;
 
-#ifndef MMNGR_IPMMU_PMB_ENABLE
 		ret = alloc_bm(bm_lossy, start, end - start, MM_CO_ORDER);
-#else
-		if (soc_is_r8a7795)
-			ret = alloc_bm(bm_lossy, start + offset,
-					end - start, MM_CO_ORDER);
-		else
-			ret = alloc_bm(bm_lossy, MM_LOSSY_ADDR + offset,
-					end - start, MM_CO_ORDER);
-#endif
 		if (ret)
 			break;
 
@@ -1190,9 +764,6 @@ static int init_lossy_info(void)
 		lossy_entries[i].fmt = fmt;
 		lossy_entries[i].bm_lossy = bm_lossy;
 
-#ifdef MMNGR_IPMMU_PMB_ENABLE
-		offset = total_lossy_size;
-#endif
 		p++;
 	}
 
@@ -1202,371 +773,6 @@ static int init_lossy_info(void)
 	iounmap(mem);
 	return ret;
 }
-
-#ifdef MMNGR_IPMMU_PMB_ENABLE
-/* IPMMU (PMB mode) */
-static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
-{
-	int ret = 0;
-	unsigned int j, k;
-	phys_addr_t base_addr = ipmmu->base_addr;
-	void __iomem *virt_addr = ipmmu->virt_addr;
-	unsigned int reg_count = ipmmu->reg_count;
-	unsigned int masters_count = ipmmu->masters_count;
-	struct hw_register *ipmmu_reg = ipmmu->ipmmu_reg;
-	struct ip_master *ip_masters = ipmmu->ip_masters;
-
-	if (handling == DO_IOREMAP) { /* ioremap */
-		/* IOREMAP registers in an IPMMU */
-		ipmmu->virt_addr = ioremap_nocache(base_addr, REG_SIZE);
-		if (ipmmu->virt_addr == NULL)
-			ret = -1;
-
-		pr_debug("\n%s: DO_IOREMAP: %s, virt_addr 0x%lx\n",
-			__func__, ipmmu->ipmmu_name,
-			(unsigned long) ipmmu->virt_addr);
-
-	} else if (handling == DO_IOUNMAP) { /* iounmap*/
-		/* IOUNMAP registers in an IPMMU */
-		iounmap(ipmmu->virt_addr);
-		ipmmu->virt_addr = NULL;
-		pr_debug("%s: DO_IOUNMAP: %s, virt_addr 0x%lx\n",
-			__func__, ipmmu->ipmmu_name,
-			(unsigned long) ipmmu->virt_addr);
-
-	} else if (handling == ENABLE_PMB) { /* Enable PMB of IPMMU */
-		for (j = 0; j < reg_count; j++) {
-			if (!strcmp(ipmmu_reg[j].reg_name, "IMPCTR"))
-				break;
-		}
-
-		if (j < reg_count) /* Found IMPCTR */
-			iowrite32(IMPCTR_VAL |
-				ioread32(virt_addr + ipmmu_reg[j].reg_offset),
-				virt_addr + ipmmu_reg[j].reg_offset);
-		else
-			ret = -1;
-
-	} else if (handling == DISABLE_PMB) { /* Disable PMB of IPMMU */
-		for (j = 0; j < reg_count; j++) {
-			if (!strcmp(ipmmu_reg[j].reg_name, "IMPCTR"))
-				break;
-		}
-
-		if (j < reg_count) /* Found IMPCTR */
-			iowrite32(~IMPCTR_VAL & ioread32(
-				virt_addr + ipmmu_reg[j].reg_offset),
-				virt_addr + ipmmu_reg[j].reg_offset);
-		else
-			ret = -1;
-
-	} else if (handling == ENABLE_UTLB) { /* Enable utlb for IP master */
-		for (j = 0; j < masters_count; j++)
-			iowrite32(IMUCTR_VAL,
-				virt_addr +
-				IMUCTRn_OFFSET(ip_masters[j].utlb_no));
-
-	} else if (handling == DISABLE_UTLB) { /* Disable utlb for IP master */
-		for (j = 0; j < masters_count; j++)
-			iowrite32(~IMUCTR_VAL & ioread32(
-				virt_addr + IMUCTRn_OFFSET(
-						ip_masters[j].utlb_no)),
-				virt_addr + IMUCTRn_OFFSET(
-						ip_masters[j].utlb_no));
-
-	} else if (handling == SET_PMB_AREA) { /* Enable PMB area for IPMMU */
-		for (j = 0; j < reg_count; j++) {
-			if (!strcmp(ipmmu_reg[j].reg_name, "IMPMBA0"))
-				break;
-		}
-
-		if (j < reg_count) /* Found IMPMBA0 */
-			for (k = 0; k < pmb_p2v_mapping.map_count; k++) {
-				pr_debug("k=%d: impmba 0x%08x impmbd 0x%08x\n",
-					k, p2v_mapping[k].impmba,
-					p2v_mapping[k].impmbd);
-
-				iowrite32(IMPMBAn_V_BIT | p2v_mapping[k].impmba,
-					virt_addr + ipmmu_reg[j].reg_offset);
-				iowrite32(IMPMBDn_V_BIT | p2v_mapping[k].impmbd,
-					virt_addr + ipmmu_reg[j+1].reg_offset);
-				j += 2; /* Move to next PMB entry */
-			}
-		else
-			ret = -1;
-
-	} else if (handling == CLEAR_PMB_AREA) { /* Clear PMB area for IPMMU */
-		for (j = 0; j < reg_count; j++) {
-			if (!strcmp(ipmmu_reg[j].reg_name, "IMPMBA0"))
-				break;
-		}
-
-		if (j < reg_count) /* Found IMPMBA0 */
-			for (k = 0; k < pmb_p2v_mapping.map_count; k++) {
-				iowrite32(0x0, virt_addr +
-					 ipmmu_reg[j].reg_offset);
-				iowrite32(0x0, virt_addr +
-					 ipmmu_reg[j+1].reg_offset);
-				j += 2; /* Move to next PMB entry */
-			}
-		else
-			ret = -1;
-
-	} else if (handling == BACKUP_PMB_REGS) { /* Backup IPMMU(PMB) regs */
-		for (j = 0; j < reg_count; j++) {
-			if (!strcmp(ipmmu_reg[j].reg_name, "IMPMBA0"))
-				break;
-		}
-
-		if (j < reg_count) /* Found IMPMBA0 */
-			for (k = 0; k < pmb_p2v_mapping.map_count; k++) {
-				/* For IMPMBAn */
-				ipmmu_reg[j].reg_val = ioread32(virt_addr +
-						       ipmmu_reg[j].reg_offset);
-				pr_debug("%s: reg value 0x%08x\n",
-					ipmmu_reg[j].reg_name,
-					ipmmu_reg[j].reg_val);
-
-				/* For IMPMBDn */
-				ipmmu_reg[j+1].reg_val = ioread32(virt_addr +
-						ipmmu_reg[j+1].reg_offset);
-				pr_debug("%s: reg value 0x%08x\n",
-					  ipmmu_reg[j+1].reg_name,
-					  ipmmu_reg[j+1].reg_val);
-
-				j += 2; /* Move to next PMB entry */
-			}
-		else
-			ret = -1;
-
-	} else if (handling == RESTORE_PMB_REGS) { /* Restore IPMMU(PMB) regs */
-		for (j = 0; j < reg_count; j++) {
-			if (!strcmp(ipmmu_reg[j].reg_name, "IMPMBA0"))
-				break;
-		}
-
-		if (j < reg_count) /* Found IMPMBA0 */
-			for (k = 0; k < pmb_p2v_mapping.map_count; k++) {
-				/* For IMPMBAn */
-				iowrite32(ipmmu_reg[j].reg_val,
-					virt_addr + ipmmu_reg[j].reg_offset);
-				pr_debug("%s: reg value 0x%08x\n",
-					ipmmu_reg[j].reg_name,
-					ioread32(virt_addr +
-					ipmmu_reg[j].reg_offset));
-
-				/* For IMPMBDn */
-				iowrite32(ipmmu_reg[j+1].reg_val,
-					 virt_addr + ipmmu_reg[j+1].reg_offset);
-				pr_debug("%s: reg value 0x%08x\n",
-					ipmmu_reg[j+1].reg_name,
-					ioread32(virt_addr +
-					ipmmu_reg[j+1].reg_offset));
-
-				j += 2; /* Move to next PMB entry */
-			}
-		else
-			ret = -1;
-
-	} else if (handling == PRINT_PMB_DEBUG) { /* Print PMB status info. */
-		for (j = 0; j < reg_count; j++) {
-			if (j == 0)
-				pr_debug("---\n"); /* delimiter */
-			if (!strcmp(ipmmu_reg[j].reg_name, "IMPSTR") ||
-			    !strcmp(ipmmu_reg[j].reg_name, "IMPEAR"))
-				pr_err("%s: %s(%08x)\n", ipmmu->ipmmu_name,
-					ipmmu_reg[j].reg_name,
-					ioread32(virt_addr +
-						ipmmu_reg[j].reg_offset));
-			else
-				pr_debug("%s: %s(%08x)\n", ipmmu->ipmmu_name,
-					  ipmmu_reg[j].reg_name,
-					  ioread32(virt_addr +
-						ipmmu_reg[j].reg_offset));
-		}
-	} else { /* Invalid */
-		pr_info("%s: Invalid parameters\n", __func__);
-		ret = -1;
-	}
-
-	return ret;
-}
-
-/*
- * Handle the ioremap/iounmap of IP registers
- *   handling: Flag of processing
- *     0: ioremap
- *     1: iounmap
- */
-static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling)
-{
-	struct rcar_ipmmu *working_ipmmu;
-	unsigned int i = 0;
-	unsigned int ret = 0;
-
-	while (ipmmu[i] != NULL) {
-		working_ipmmu = ipmmu[i];
-		ret = __handle_registers(working_ipmmu, handling);
-		i++;
-	}
-
-	return ret;
-}
-static int map_register(void)
-{
-	int ret = 0;
-
-	ret = handle_registers(rcar_gen3_ipmmu, DO_IOREMAP);
-
-	return ret;
-}
-
-static void unmap_register(void)
-{
-	handle_registers(rcar_gen3_ipmmu, DO_IOUNMAP);
-}
-
-static void enable_pmb(void)
-{
-	handle_registers(rcar_gen3_ipmmu, ENABLE_PMB);
-}
-
-static void enable_utlb(void)
-{
-	handle_registers(rcar_gen3_ipmmu, ENABLE_UTLB);
-}
-
-static void set_pmb_area(void)
-{
-	handle_registers(rcar_gen3_ipmmu, SET_PMB_AREA);
-}
-
-static void pmb_debuginfo(void)
-{
-	handle_registers(rcar_gen3_ipmmu, PRINT_PMB_DEBUG);
-}
-
-static void backup_pmb_registers(void)
-{
-	handle_registers(rcar_gen3_ipmmu, BACKUP_PMB_REGS);
-}
-
-static void restore_pmb_registers(void)
-{
-	handle_registers(rcar_gen3_ipmmu, RESTORE_PMB_REGS);
-}
-
-static int pmb_init(void)
-{
-	int			ret = 0;
-
-	ret = map_register();
-	if (ret != 0) {
-		pr_err("%s: map_register() NG\n", __func__);
-		return -1;
-	}
-
-	set_pmb_area();
-	enable_pmb();
-	enable_utlb();
-
-	return 0;
-}
-
-static void pmb_exit(void)
-{
-	pmb_debuginfo();
-
-	/* Disable all uTLB and PMB support */
-	handle_registers(rcar_gen3_ipmmu, DISABLE_UTLB);
-	handle_registers(rcar_gen3_ipmmu, DISABLE_PMB);
-	handle_registers(rcar_gen3_ipmmu, CLEAR_PMB_AREA);
-
-	unmap_register();
-}
-
-static int ipmmu_probe(struct platform_device *pdev)
-{
-	struct device *dev = &pdev->dev;
-	const struct rcar_ipmmu_data *data;
-
-	data = of_device_get_match_data(dev);
-	if (!data)
-		return -1;
-
-	if (soc_device_match(r8a7795es1))
-		rcar_gen3_ipmmu = r8a7795es1_ipmmu;
-	else
-		rcar_gen3_ipmmu = data->ipmmu_data;
-
-	if (soc_device_match(r8a7795))
-		soc_is_r8a7795 = true;
-	else
-		soc_is_r8a7795 = false;
-
-	return 0;
-}
-
-static int ipmmu_remove(struct platform_device *pdev)
-{
-	return 0;
-}
-
-static const struct rcar_ipmmu_data r8a7795_ipmmu_data = {
-	.ipmmu_data = r8a7795_ipmmu,
-};
-
-static const struct rcar_ipmmu_data r8a7796_ipmmu_data = {
-	.ipmmu_data = r8a7796_ipmmu,
-};
-
-static const struct of_device_id ipmmu_of_match[] = {
-	{
-	  .compatible	= "renesas,ipmmu-pmb-r8a7795",
-	  .data		= &r8a7795_ipmmu_data
-	},
-	{
-	  .compatible	= "renesas,ipmmu-pmb-r8a7796",
-	  .data = &r8a7796_ipmmu_data
-	},
-	{ },
-};
-
-#ifdef CONFIG_PM_SLEEP
-static int mm_ipmmu_suspend(struct device *dev)
-{
-	backup_pmb_registers();
-
-	return 0;
-}
-
-static int mm_ipmmu_resume(struct device *dev)
-{
-	restore_pmb_registers();
-	enable_pmb();
-	enable_utlb();
-
-	return 0;
-}
-
-static SIMPLE_DEV_PM_OPS(mm_ipmmu_pm_ops,
-			mm_ipmmu_suspend, mm_ipmmu_resume);
-#define DEV_PM_OPS (&mm_ipmmu_pm_ops)
-#else
-#define DEV_PM_OPS NULL
-#endif /* CONFIG_PM_SLEEP */
-
-static struct platform_driver ipmmu_driver = {
-	.driver = {
-		.name = DEVNAME "_ipmmu_drv",
-		.pm	= DEV_PM_OPS,
-		.owner = THIS_MODULE,
-		.of_match_table = ipmmu_of_match,
-	},
-	.probe = ipmmu_probe,
-	.remove = ipmmu_remove,
-};
-#endif /* MMNGR_IPMMU_PMB_ENABLE */
 
 static const struct file_operations fops = {
 	.owner		= THIS_MODULE,
@@ -1600,13 +806,11 @@ static int mm_probe(struct platform_device *pdev)
 		return -1;
 	}
 
-#ifdef MMNGR_IPMMU_PMB_DISABLE
 	ret = validate_memory_map();
 	if (ret) {
 		pr_err("MMD mm_probe ERROR\n");
 		return -1;
 	}
-#endif
 
 #ifndef MMNGR_SSP_ENABLE
 	mm_omxbuf_size = mm_kernel_reserve_size;
@@ -1639,16 +843,6 @@ static int mm_probe(struct platform_device *pdev)
 	p = kzalloc(sizeof(struct MM_DRVDATA), GFP_KERNEL);
 	if (p == NULL)
 		return -1;
-
-#ifdef MMNGR_IPMMU_PMB_ENABLE
-	ret = pmb_create_phys2virt_map();
-	if (ret) {
-		pr_err("MMD mm_init ERROR\n");
-		return -1;
-	}
-
-	pmb_init();
-#endif
 
 	misc_register(&misc);
 
@@ -1693,10 +887,6 @@ static int mm_remove(struct platform_device *pdev)
 
 	misc_deregister(&misc);
 
-#ifdef MMNGR_IPMMU_PMB_ENABLE
-	pmb_exit();
-#endif
-
 #ifdef MMNGR_SSP_ENABLE
 	if (is_sspbuf_valid)
 		free_bm(&bm_ssp);
@@ -1739,18 +929,12 @@ static struct platform_driver mm_driver = {
 
 static int mm_init(void)
 {
-#ifdef MMNGR_IPMMU_PMB_ENABLE
-	platform_driver_register(&ipmmu_driver);
-#endif
 	return platform_driver_register(&mm_driver);
 }
 
 static void mm_exit(void)
 {
 	platform_driver_unregister(&mm_driver);
-#ifdef MMNGR_IPMMU_PMB_ENABLE
-	platform_driver_unregister(&ipmmu_driver);
-#endif
 }
 
 module_init(mm_init);
