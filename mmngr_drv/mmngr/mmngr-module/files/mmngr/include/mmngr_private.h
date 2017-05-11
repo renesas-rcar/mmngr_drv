@@ -111,6 +111,8 @@ enum {
 	START_MMU_PERF_MON,
 	STOP_MMU_PERF_MON,
 	PRINT_MMU_PERF_MON,
+	BACKUP_MMU_REGS,
+	RESTORE_MMU_REGS,
 };
 
 struct hw_register {
@@ -318,6 +320,8 @@ static int ipmmu_mmu_initialize(void);
 static void ipmmu_mmu_deinitialize(void);
 static unsigned int ipmmu_mmu_phys2virt(phys_addr_t paddr);
 static phys_addr_t ipmmu_mmu_virt2phys(unsigned int vaddr);
+static int mm_ipmmu_suspend(struct device *dev);
+static int mm_ipmmu_resume(struct device *dev);
 
 #endif /* IPMMU_MMU_SUPPORT */
 

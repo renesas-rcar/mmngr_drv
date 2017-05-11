@@ -1157,6 +1157,41 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 		}
 
 
+	} else if (handling == BACKUP_MMU_REGS) { /* Backup IPMMU(MMU) regs */
+		for (j = 0; j < reg_count; j++) {
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMSTR"))
+				break;
+		}
+
+		if (j < reg_count) /* Found IMSTR */
+			for (; j < reg_count; j++) {
+				ipmmu_reg[j].reg_val = ioread32(virt_addr +
+						       ipmmu_reg[j].reg_offset);
+				pr_debug("%s: reg value 0x%08x\n",
+					 ipmmu_reg[j].reg_name,
+					 ipmmu_reg[j].reg_val);
+			}
+		else
+			ret = -1;
+
+	} else if (handling == RESTORE_MMU_REGS) { /* Restore IPMMU(MMU) regs */
+		for (j = 0; j < reg_count; j++) {
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMSTR"))
+				break;
+		}
+
+		if (j < reg_count) /* Found IMSTR */
+			for (; j < reg_count; j++) {
+				iowrite32(ipmmu_reg[j].reg_val,
+					  virt_addr + ipmmu_reg[j].reg_offset);
+				pr_debug("%s: reg value 0x%08x\n",
+					 ipmmu_reg[j].reg_name,
+					 ioread32(virt_addr +
+					 ipmmu_reg[j].reg_offset));
+			}
+		else
+			ret = -1;
+
 	} else { /* Invalid */
 		pr_err("%s: Invalid parameters\n", __func__);
 		ret = -1;
@@ -1245,9 +1280,37 @@ static const struct of_device_id ipmmu_of_match[] = {
 	{ },
 };
 
+#ifdef CONFIG_PM_SLEEP
+static int mm_ipmmu_suspend(struct device *dev)
+{
+	handle_registers(rcar_gen3_ipmmu, BACKUP_MMU_REGS);
+
+	return 0;
+}
+
+static int mm_ipmmu_resume(struct device *dev)
+{
+	__handle_registers(&ipmmumm, RESTORE_MMU_REGS);
+	__handle_registers(&ipmmumm, SET_TRANSLATION_TABLE);
+	__handle_registers(&ipmmumm, ENABLE_MMU_MM);
+
+	handle_registers(rcar_gen3_ipmmu, ENABLE_MMU);
+	handle_registers(rcar_gen3_ipmmu, ENABLE_UTLB);
+
+	return 0;
+}
+
+static SIMPLE_DEV_PM_OPS(mm_ipmmu_pm_ops,
+			mm_ipmmu_suspend, mm_ipmmu_resume);
+#define DEV_PM_OPS (&mm_ipmmu_pm_ops)
+#else
+#define DEV_PM_OPS NULL
+#endif /* CONFIG_PM_SLEEP */
+
 static struct platform_driver ipmmu_driver = {
 	.driver = {
 		.name = DEVNAME "_ipmmu_drv",
+		.pm	= DEV_PM_OPS,
 		.owner = THIS_MODULE,
 		.of_match_table = ipmmu_of_match,
 	},
