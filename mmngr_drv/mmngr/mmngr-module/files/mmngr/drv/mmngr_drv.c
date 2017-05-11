@@ -95,6 +95,229 @@ static bool			have_lossy_entries;
 #ifdef MMNGR_SSP_ENABLE
 static bool			is_sspbuf_valid = false;
 #endif
+#ifdef IPMMU_MMU_SUPPORT
+static bool			soc_is_r8a7795;
+static u64			ipmmu_addr_section_0;
+static u64			ipmmu_addr_section_1;
+static u64			ipmmu_addr_section_2;
+static u64			ipmmu_addr_section_3;
+static phys_addr_t		*ipmmu_mmu_trans_table;
+#endif
+
+/* Attribute structs describing Salvator-X revisions */
+/* H3 WS1.0 and WS1.1 */
+static const struct soc_device_attribute r8a7795es1[]  = {
+	{ .soc_id = "r8a7795", .revision = "ES1.*" },
+	{}
+};
+
+/* H3 ES2.0 */
+static const struct soc_device_attribute r8a7795[]  = {
+	{ .soc_id = "r8a7795", .revision = "ES2.0" },
+	{}
+};
+
+/* M3 */
+static const struct soc_device_attribute r8a7796[]  = {
+	{ .soc_id = "r8a7796" },
+	{}
+};
+
+#ifdef IPMMU_MMU_SUPPORT
+/* For IPMMU Main Memory (IPMMUMM) */
+static struct hw_register ipmmumm_ip_regs[] = {
+	{"IMCTR",	IMCTRn_OFFSET(CUR_TTSEL)},
+	{"IMTTBCR",	IMTTBCRn_OFFSET(CUR_TTSEL)},
+	{"IMTTUBR",	IMTTUBR0n_OFFSET(CUR_TTSEL)},
+	{"IMTTLBR",	IMTTLBR0n_OFFSET(CUR_TTSEL)},
+	{"IMMAIR0",	IMMAIR0n_OFFSET(CUR_TTSEL)},
+	{"IMELAR",	IMELARn_OFFSET(CUR_TTSEL)},
+	{"IMEUAR",	IMEUARn_OFFSET(CUR_TTSEL)},
+	{"IMSTR",	IMSTRn_OFFSET(CUR_TTSEL)},
+};
+
+/* For each IPMMU cache */
+static struct hw_register ipmmu_ip_regs[] = {
+	{"IMCTR",	IMCTRn_OFFSET(CUR_TTSEL)},
+	{"IMUASID",	IMUASIDn_OFFSET(CUR_TTSEL)},
+	/*
+	 * IMUCTRn_OFFSET(n) is not defined here
+	 * The register is calculated base on IP utlb_no value
+	 */
+};
+
+static struct rcar_ipmmu ipmmumm = {
+	.ipmmu_name	= "IPMMUMM",
+	.base_addr	= IPMMUMM_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmumm_ip_regs),
+	.ipmmu_reg	= ipmmumm_ip_regs,
+	.masters_count	= 0,
+	.ip_masters	= NULL,
+};
+#endif
+
+#ifdef IPMMU_MMU_SUPPORT
+static struct rcar_ipmmu **rcar_gen3_ipmmu;
+
+/* R-Car H3 (R8A7795 ES1.x) */
+static struct ip_master r8a7795es1_ipmmuvc0_masters[] = {
+	{"FCP-CS", 0},
+};
+
+static struct rcar_ipmmu r8a7795es1_ipmmuvc0 = {
+	.ipmmu_name	= "IPMMUVC0",
+	.base_addr	= IPMMUVC0_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7795es1_ipmmuvc0_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7795es1_ipmmuvc0_masters,
+};
+
+static struct ip_master r8a7795es1_ipmmuvc1_masters[] = {
+	{"FCP-CI ch0",	4},
+	{"FCP-CI ch1",	5},
+};
+
+static struct rcar_ipmmu r8a7795es1_ipmmuvc1 = {
+	.ipmmu_name	= "IPMMUVC1",
+	.base_addr	= IPMMUVC1_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7795es1_ipmmuvc1_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7795es1_ipmmuvc1_masters,
+};
+
+static struct ip_master r8a7795es1_ipmmuvp_masters[] = {
+	{"FCP-F ch0",	0},
+	{"FCP-F ch1",	1},
+	{"FCP-F ch2",	2},
+	{"FCP-VB ch0",	5},
+	{"FCP-VB ch1",	7},
+	{"FCP-VI ch0",	8},
+	{"FCP-VI ch1",	9},
+	{"FCP-VI ch2",	10},
+};
+
+static struct rcar_ipmmu r8a7795es1_ipmmuvp = {
+	.ipmmu_name	= "IPMMUVP",
+	.base_addr	= IPMMUVP_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7795es1_ipmmuvp_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7795es1_ipmmuvp_masters,
+};
+
+static struct rcar_ipmmu *r8a7795es1_ipmmu[] = {
+	&r8a7795es1_ipmmuvp,
+	&r8a7795es1_ipmmuvc0,
+	&r8a7795es1_ipmmuvc1,
+	NULL, /* End of list */
+};
+
+/* R-Car H3 (R8A7795 ES2.0) */
+static struct ip_master r8a7795_ipmmuvc0_masters[] = {
+	{"FCP-CS osid0", 8},
+	{"FCP-CS osid4", 12},
+};
+
+static struct rcar_ipmmu r8a7795_ipmmuvc0 = {
+	.ipmmu_name	= "IPMMUVC0",
+	.base_addr	= IPMMUVC0_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7795_ipmmuvc0_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7795_ipmmuvc0_masters,
+};
+
+static struct ip_master r8a7795_ipmmuvc1_masters[] = {
+	{"FCP-CS osid0", 8},
+	{"FCP-CS osid4", 12},
+};
+
+static struct rcar_ipmmu r8a7795_ipmmuvc1 = {
+	.ipmmu_name	= "IPMMUVC1",
+	.base_addr	= IPMMUVC1_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7795_ipmmuvc1_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7795_ipmmuvc1_masters,
+};
+
+static struct ip_master r8a7795_ipmmuvp0_masters[] = {
+	{"FCP-F ch0",	0},
+	{"FCP-VB ch0",	5},
+	{"FCP-VI ch0",	8},
+};
+
+static struct rcar_ipmmu r8a7795_ipmmuvp0 = {
+	.ipmmu_name	= "IPMMUVP0",
+	.base_addr	= IPMMUVP0_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7795_ipmmuvp0_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7795_ipmmuvp0_masters,
+};
+
+static struct ip_master r8a7795_ipmmuvp1_masters[] = {
+	{"FCP-F ch1",	1},
+	{"FCP-VB ch1",	7},
+	{"FCP-VI ch1",	9},
+};
+
+static struct rcar_ipmmu r8a7795_ipmmuvp1 = {
+	.ipmmu_name	= "IPMMUVP1",
+	.base_addr	= IPMMUVP1_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7795_ipmmuvp1_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7795_ipmmuvp1_masters,
+};
+
+static struct rcar_ipmmu *r8a7795_ipmmu[] = {
+	&r8a7795_ipmmuvp0,
+	&r8a7795_ipmmuvp1,
+	&r8a7795_ipmmuvc0,
+	&r8a7795_ipmmuvc1,
+	NULL, /* End of list */
+};
+
+/* R-Car M3 (R8A7796) */
+static struct ip_master r8a7796_ipmmuvi_masters[] = {
+	{"FCP-VB",  5},
+};
+
+static struct rcar_ipmmu r8a7796_ipmmuvi = {
+	.ipmmu_name	= "IPMMUVI",
+	.base_addr	= IPMMUVI_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7796_ipmmuvi_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7796_ipmmuvi_masters,
+};
+
+static struct ip_master r8a7796_ipmmuvc0_masters[] = {
+	{"FCP-CI",  4},
+	{"FCP-CS",  8},
+	{"FCP-F",  16},
+	{"FCP-VI", 19},
+};
+
+static struct rcar_ipmmu r8a7796_ipmmuvc0 = {
+	.ipmmu_name	= "IPMMUVC0",
+	.base_addr	= IPMMUVC0_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7796_ipmmuvc0_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7796_ipmmuvc0_masters,
+};
+
+static struct rcar_ipmmu *r8a7796_ipmmu[] = {
+	&r8a7796_ipmmuvi,
+	&r8a7796_ipmmuvc0,
+	NULL, /* End of list */
+};
+
+#endif /* IPMMU_MMU_SUPPORT */
 
 static int mm_ioc_alloc(struct device *mm_dev,
 			int __user *in,
@@ -120,7 +343,12 @@ static int mm_ioc_alloc(struct device *mm_dev,
 		out->hard_addr = 0;
 		return ret;
 	}
+
+#ifdef IPMMU_MMU_SUPPORT
+	out->hard_addr = ipmmu_mmu_phys2virt(out->phy_addr);
+#else
 	out->hard_addr = (unsigned int)out->phy_addr;
+#endif
 
 	out->flag = tmp.flag;
 
@@ -223,7 +451,12 @@ static int mm_ioc_alloc_co(struct BM *pb, int __user *in, struct MM_PARAM *out)
 	spin_unlock(&lock);
 
 	out->phy_addr = pb->top_phy_addr + (start_bit << pb->order);
+
+#ifdef IPMMU_MMU_SUPPORT
+	out->hard_addr = ipmmu_mmu_phys2virt(out->phy_addr);
+#else
 	out->hard_addr = (unsigned int)out->phy_addr;
+#endif
 	out->flag = tmp.flag;
 
 	return 0;
@@ -574,7 +807,13 @@ static int mmap(struct file *filp, struct vm_area_struct *vma)
 		return -EINVAL;
 
 	off = vma->vm_pgoff << PAGE_SHIFT;
+#ifdef IPMMU_MMU_SUPPORT
+	start = ipmmu_mmu_virt2phys((unsigned int)p->phy_addr);
+	if (!start)
+		return -EINVAL;
+#else
 	start = p->phy_addr;
+#endif
 
 	len = PAGE_ALIGN((start & ~PAGE_MASK) + p->size);
 
@@ -774,6 +1013,241 @@ static int init_lossy_info(void)
 	return ret;
 }
 
+#ifdef IPMMU_MMU_SUPPORT
+static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
+{
+	int ret = 0;
+	unsigned int j;
+
+	phys_addr_t base_addr = ipmmu->base_addr;
+	void __iomem *virt_addr = ipmmu->virt_addr;
+	unsigned int reg_count = ipmmu->reg_count;
+	unsigned int masters_count = ipmmu->masters_count;
+	struct hw_register *ipmmu_reg = ipmmu->ipmmu_reg;
+	struct ip_master *ip_masters = ipmmu->ip_masters;
+
+	if (handling == DO_IOREMAP) { /* ioremap */
+		/* IOREMAP registers in an IPMMU */
+		ipmmu->virt_addr = ioremap_nocache(base_addr, REG_SIZE);
+		if (ipmmu->virt_addr == NULL)
+			ret = -1;
+
+		pr_debug("\n%s: DO_IOREMAP: %s, virt_addr 0x%lx\n",
+			 __func__, ipmmu->ipmmu_name,
+			 (unsigned long) ipmmu->virt_addr);
+
+	} else if (handling == DO_IOUNMAP) { /* iounmap*/
+		/* IOUNMAP registers in an IPMMU */
+		iounmap(ipmmu->virt_addr);
+		ipmmu->virt_addr = NULL;
+		pr_debug("%s: DO_IOUNMAP: %s, virt_addr 0x%lx\n",
+			 __func__, ipmmu->ipmmu_name,
+			 (unsigned long) ipmmu->virt_addr);
+
+	} else if (handling == ENABLE_UTLB) { /* Enable utlb for IP master */
+		for (j = 0; j < masters_count; j++)
+			iowrite32(IMUCTR_VAL,
+				  virt_addr +
+				  IMUCTRn_OFFSET(ip_masters[j].utlb_no));
+
+	} else if (handling == DISABLE_UTLB) { /* Disable utlb for IP master */
+		for (j = 0; j < masters_count; j++)
+			iowrite32(~IMUCTR_VAL & ioread32(
+				virt_addr + IMUCTRn_OFFSET(
+						ip_masters[j].utlb_no)),
+				virt_addr + IMUCTRn_OFFSET(
+						ip_masters[j].utlb_no));
+
+	} else if (handling == ENABLE_MMU_MM) { /* Enable MMU of IPMMUMM */
+		for (j = 0; j < reg_count; j++) {
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMCTR"))
+				break;
+		}
+
+		if (j < reg_count) /* Found IMCTR */
+			iowrite32(IMCTR_MM_VAL | ioread32(
+				  virt_addr + ipmmu_reg[j].reg_offset),
+				  virt_addr + ipmmu_reg[j].reg_offset);
+		else
+			ret = -1;
+
+	} else if (handling == DISABLE_MMU_MM) { /* Disable MMU of IPMMUMM */
+		for (j = 0; j < reg_count; j++) {
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMCTR"))
+				break;
+		}
+
+		if (j < reg_count) /* Found IMCTR */
+			iowrite32(~IMCTR_MM_VAL & ioread32(
+				  virt_addr + ipmmu_reg[j].reg_offset),
+				  virt_addr + ipmmu_reg[j].reg_offset);
+		else
+			ret = -1;
+
+	} else if (handling == ENABLE_MMU) { /* Enable MMU of IPMMU */
+		for (j = 0; j < reg_count; j++) {
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMCTR"))
+				break;
+		}
+
+		if (j < reg_count) /* Found IMCTR */
+			iowrite32(IMCTR_VAL | ioread32(
+				  virt_addr + ipmmu_reg[j].reg_offset),
+				  virt_addr + ipmmu_reg[j].reg_offset);
+		else
+			ret = -1;
+
+	} else if (handling == DISABLE_MMU) { /* Disable MMU of IPMMU */
+		for (j = 0; j < reg_count; j++) {
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMCTR"))
+				break;
+		}
+
+		if (j < reg_count) /* Found IMCTR */
+			iowrite32(~IMCTR_VAL & ioread32(
+				  virt_addr + ipmmu_reg[j].reg_offset),
+				  virt_addr + ipmmu_reg[j].reg_offset);
+		else
+			ret = -1;
+
+	} else if (handling == SET_TRANSLATION_TABLE) {
+		/* Enable MMU translation for IPMMU */
+		for (j = 0; j < reg_count; j++) {
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMTTBCR"))
+				break;
+		}
+
+		iowrite32(IMTTUBR_VAL, virt_addr + ipmmu_reg[j+1].reg_offset);
+		iowrite32(IMTTLBR_VAL, virt_addr + ipmmu_reg[j+2].reg_offset);
+		iowrite32(IMMAIR0_VAL, virt_addr + ipmmu_reg[j+3].reg_offset);
+		iowrite32(IMTTBCR_VAL, virt_addr + ipmmu_reg[j].reg_offset);
+
+	} else if (handling == CLEAR_MMU_STATUS_REGS) { /* Clear MMU status */
+		for (j = 0; j < reg_count; j++) {
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMSTR"))
+				break;
+		}
+
+		iowrite32(0, virt_addr + ipmmu_reg[j].reg_offset);
+
+	} else if (handling == PRINT_MMU_DEBUG) { /* Print MMU status */
+		for (j = 0; j < reg_count; j++) {
+			if (j == 0)
+				pr_debug("---\n"); /* delimiter */
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMSTR") ||
+			    !strcmp(ipmmu_reg[j].reg_name, "IMELAR") ||
+			    !strcmp(ipmmu_reg[j].reg_name, "IMEUAR"))
+				pr_err("%s: %s(%08x)\n", ipmmu->ipmmu_name,
+				       ipmmu_reg[j].reg_name,
+				       ioread32(virt_addr +
+						ipmmu_reg[j].reg_offset));
+			else
+				pr_debug("%s: %s(%08x)\n", ipmmu->ipmmu_name,
+					 ipmmu_reg[j].reg_name,
+					 ioread32(virt_addr +
+						  ipmmu_reg[j].reg_offset));
+		}
+
+
+	} else { /* Invalid */
+		pr_err("%s: Invalid parameters\n", __func__);
+		ret = -1;
+	}
+
+	return ret;
+}
+
+/*
+ * Handle the ioremap/iounmap of IP registers
+ *   handling: Flag of processing
+ *     0: ioremap
+ *     1: iounmap
+ */
+static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling)
+{
+	struct rcar_ipmmu *working_ipmmu;
+	unsigned int i = 0;
+	unsigned int ret = 0;
+
+	while (ipmmu[i] != NULL) {
+		working_ipmmu = ipmmu[i];
+		ret = __handle_registers(working_ipmmu, handling);
+		i++;
+	}
+
+	return ret;
+}
+#endif /* IPMMU_MMU_SUPPORT */
+
+#ifdef IPMMU_MMU_SUPPORT
+static int ipmmu_probe(struct platform_device *pdev)
+{
+	struct device *dev = &pdev->dev;
+	const struct rcar_ipmmu_data *data;
+
+	data = of_device_get_match_data(dev);
+	if (!data)
+		return -1;
+
+	if (soc_device_match(r8a7795es1))
+		rcar_gen3_ipmmu = r8a7795es1_ipmmu;
+	else
+		rcar_gen3_ipmmu = data->ipmmu_data;
+
+	if (soc_device_match(r8a7795))
+		soc_is_r8a7795 = true;
+	else
+		soc_is_r8a7795 = false;
+
+	if (soc_device_match(r8a7796))
+		ipmmu_mmu_trans_table = m3_mmu_table;
+	else /* H3 */
+		ipmmu_mmu_trans_table = h3_mmu_table;
+
+	ipmmu_addr_section_0 = ipmmu_mmu_trans_table[0];
+	ipmmu_addr_section_1 = ipmmu_mmu_trans_table[1];
+	ipmmu_addr_section_2 = ipmmu_mmu_trans_table[2];
+	ipmmu_addr_section_3 = ipmmu_mmu_trans_table[3];
+
+	return 0;
+}
+
+static int ipmmu_remove(struct platform_device *pdev)
+{
+	return 0;
+}
+
+static const struct rcar_ipmmu_data r8a7795_ipmmu_data = {
+	.ipmmu_data = r8a7795_ipmmu,
+};
+
+static const struct rcar_ipmmu_data r8a7796_ipmmu_data = {
+	.ipmmu_data = r8a7796_ipmmu,
+};
+
+static const struct of_device_id ipmmu_of_match[] = {
+	{
+	  .compatible	= "renesas,ipmmu-mmu-r8a7795",
+	  .data		= &r8a7795_ipmmu_data
+	},
+	{
+	  .compatible	= "renesas,ipmmu-mmu-r8a7796",
+	  .data = &r8a7796_ipmmu_data
+	},
+	{ },
+};
+
+static struct platform_driver ipmmu_driver = {
+	.driver = {
+		.name = DEVNAME "_ipmmu_drv",
+		.owner = THIS_MODULE,
+		.of_match_table = ipmmu_of_match,
+	},
+	.probe = ipmmu_probe,
+	.remove = ipmmu_remove,
+};
+#endif /* IPMMU_MMU_SUPPORT */
+
 static const struct file_operations fops = {
 	.owner		= THIS_MODULE,
 	.open		= open,
@@ -844,6 +1318,11 @@ static int mm_probe(struct platform_device *pdev)
 	if (p == NULL)
 		return -1;
 
+#ifdef IPMMU_MMU_SUPPORT
+	ipmmu_mmu_startup();
+	ipmmu_mmu_initialize();
+#endif
+
 	misc_register(&misc);
 
 	/* Handler for mem alloc in 2nd CMA area */
@@ -887,6 +1366,11 @@ static int mm_remove(struct platform_device *pdev)
 
 	misc_deregister(&misc);
 
+#ifdef IPMMU_MMU_SUPPORT
+	ipmmu_mmu_deinitialize();
+	ipmmu_mmu_cleanup();
+#endif
+
 #ifdef MMNGR_SSP_ENABLE
 	if (is_sspbuf_valid)
 		free_bm(&bm_ssp);
@@ -927,14 +1411,134 @@ static struct platform_driver mm_driver = {
 	.remove = mm_remove,
 };
 
+#ifdef IPMMU_MMU_SUPPORT
+static void create_l1_pgtable(void)
+{
+	pgdval_t	*pgdval_addr = NULL;
+	int i = 0;
+
+	pgdval_addr = kzalloc(PAGE_SIZE, GFP_ATOMIC);
+
+	if (pgdval_addr != NULL) {
+		pgdval_addr[0] = IPMMU_PGDVAL_SECTION_0;
+		pgdval_addr[1] = IPMMU_PGDVAL_SECTION_1;
+		pgdval_addr[2] = IPMMU_PGDVAL_SECTION_2;
+		pgdval_addr[3] = IPMMU_PGDVAL_SECTION_3;
+
+		ipmmu_mmu_pgd = pgdval_addr;
+	}
+	isb();
+	dma_rmb();
+
+	for (i = 0; i < 4; i++)
+		pr_debug("L1: ipmmu_mmu_pgd[%d] 0x%llx\n", i, ipmmu_mmu_pgd[i]);
+
+	for (i = 0; i < 4; i++) {
+		pr_debug("ipmmu_mmu_trans_table[%d]: 0x%llx\n", i,
+			 ipmmu_mmu_trans_table[i]);
+	}
+}
+
+static void free_lx_pgtable(void)
+{
+	kfree(ipmmu_mmu_pgd);
+}
+
+static void ipmmu_mmu_startup(void)
+{
+	create_l1_pgtable();
+}
+
+static void ipmmu_mmu_cleanup(void)
+{
+	free_lx_pgtable();
+}
+
+static int ipmmu_mmu_initialize(void)
+{
+	__handle_registers(&ipmmumm, DO_IOREMAP);
+	handle_registers(rcar_gen3_ipmmu, DO_IOREMAP);
+	__handle_registers(&ipmmumm, CLEAR_MMU_STATUS_REGS);
+
+	__handle_registers(&ipmmumm, SET_TRANSLATION_TABLE);
+	__handle_registers(&ipmmumm, ENABLE_MMU_MM);
+
+	handle_registers(rcar_gen3_ipmmu, ENABLE_MMU);
+	handle_registers(rcar_gen3_ipmmu, ENABLE_UTLB);
+	__handle_registers(&ipmmumm, CLEAR_MMU_STATUS_REGS);
+
+	return 0;
+}
+
+static void ipmmu_mmu_deinitialize(void)
+{
+	__handle_registers(&ipmmumm, PRINT_MMU_DEBUG);
+	handle_registers(rcar_gen3_ipmmu, PRINT_MMU_DEBUG);
+
+	handle_registers(rcar_gen3_ipmmu, DISABLE_UTLB);
+	handle_registers(rcar_gen3_ipmmu, DISABLE_MMU);
+
+	__handle_registers(&ipmmumm, DISABLE_MMU_MM);
+	__handle_registers(&ipmmumm, CLEAR_MMU_STATUS_REGS);
+
+	handle_registers(rcar_gen3_ipmmu, DO_IOUNMAP);
+	__handle_registers(&ipmmumm, DO_IOUNMAP);
+}
+
+static unsigned int ipmmu_mmu_phys2virt(phys_addr_t paddr)
+{
+	unsigned int	vaddr = 0;
+	int		section = 0;
+
+	pr_debug("p2v: before: paddr 0x%llx vaddr 0x%x\n", paddr, vaddr);
+
+	for (section = 0; section < 4; section++) {
+		if ((paddr >= ipmmu_mmu_trans_table[section]) &&
+		    (paddr < ipmmu_mmu_trans_table[section] + SZ_1G)) {
+			vaddr = section * SZ_1G;
+			vaddr |= paddr & 0x3fffffff;
+		}
+	}
+
+	pr_debug("p2v: after: paddr 0x%llx vaddr 0x%x\n", paddr, vaddr);
+
+	return vaddr;
+}
+
+static phys_addr_t ipmmu_mmu_virt2phys(unsigned int vaddr)
+{
+	phys_addr_t	paddr = 0;
+	unsigned int	section_start_addr = 0;
+	unsigned int	section = 0;
+
+	pr_debug("v2p: before: vaddr 0x%x paddr 0x%llx\n", vaddr, paddr);
+
+	section = (vaddr >> 30);
+	section_start_addr = section * SZ_1G;
+
+	paddr = ipmmu_mmu_trans_table[section]
+		+ (vaddr - section_start_addr);
+
+	pr_debug("v2p: after: vaddr 0x%x paddr 0x%llx\n", vaddr, paddr);
+
+	return paddr;
+}
+#endif /* IPMMU_MMU_SUPPORT */
+
 static int mm_init(void)
 {
+#ifdef IPMMU_MMU_SUPPORT
+	platform_driver_register(&ipmmu_driver);
+#endif
 	return platform_driver_register(&mm_driver);
 }
 
 static void mm_exit(void)
 {
 	platform_driver_unregister(&mm_driver);
+#ifdef IPMMU_MMU_SUPPORT
+	platform_driver_unregister(&ipmmu_driver);
+#endif
 }
 
 module_init(mm_init);

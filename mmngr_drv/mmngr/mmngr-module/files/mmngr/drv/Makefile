@@ -5,6 +5,7 @@ mmngr-objs := $(CFILES:.c=.o)
 
 ccflags-y	+= -D$(MMNGR_CONFIG)
 ccflags-y	+= -D$(MMNGR_SSP_CONFIG)
+ccflags-y	+= -D$(MMNGR_IPMMU_MMU_CONFIG)
 ccflags-y	+= -I$(KERNELSRC)/include
 
 all:

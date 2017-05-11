@@ -63,6 +63,11 @@
 
 #include "mmngr_private_cmn.h"
 
+/* IPMMU (MMU) */
+#if defined(IPMMU_MMU_SUPPORT_1GB_PGTABLE)
+#define IPMMU_MMU_SUPPORT
+#endif
+
 struct MM_DRVDATA {
 	struct device *mm_dev;
 	struct device *mm_dev_reserve;
@@ -89,7 +94,49 @@ struct LOSSY_DATA {
 	struct BM *bm_lossy;
 };
 
-extern struct cma *rcar_gen3_dma_contiguous;
+#ifdef IPMMU_MMU_SUPPORT
+enum {
+	DO_IOREMAP,
+	DO_IOUNMAP,
+	ENABLE_UTLB,
+	DISABLE_UTLB,
+	ENABLE_MMU_MM,
+	DISABLE_MMU_MM,
+	ENABLE_MMU,
+	DISABLE_MMU,
+	SET_TRANSLATION_TABLE,
+	CLEAR_MMU_STATUS_REGS,
+	PRINT_MMU_DEBUG,
+	START_MMU_PERF_MON,
+	STOP_MMU_PERF_MON,
+	PRINT_MMU_PERF_MON,
+};
+
+struct hw_register {
+	char *reg_name;
+	unsigned int reg_offset;
+	unsigned int reg_val;
+};
+
+struct ip_master {
+	char *ip_name;
+	unsigned int utlb_no;
+};
+
+struct rcar_ipmmu {
+	char *ipmmu_name;
+	unsigned int base_addr;
+	void __iomem *virt_addr;
+	unsigned int reg_count;
+	unsigned int masters_count;
+	struct hw_register *ipmmu_reg;
+	struct ip_master *ip_masters;
+};
+
+struct rcar_ipmmu_data {
+	struct rcar_ipmmu **ipmmu_data;
+};
+#endif /* IPMMU_MMU_SUPPORT */
 
 #ifdef CONFIG_COMPAT
 struct COMPAT_MM_PARAM {
@@ -152,16 +199,23 @@ static void mm_exit(void);
 static int validate_memory_map(void);
 
 #if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
-#define MM_OMXBUF_ADDR		(0x70000000UL)
+#ifdef IPMMU_MMU_SUPPORT
+	#define MM_OMXBUF_ADDR	(mm_kernel_reserve_addr)
+#else
+	#define MM_OMXBUF_ADDR		(0x70000000UL)
+#endif /* IPMMU_MMU_SUPPORT */
+
 #define MM_OMXBUF_SIZE		(256 * 1024 * 1024)
+#endif /* MMNGR_SALVATORX || MMNGR_KRIEK */
+
+#define	MM_CO_ORDER		(12)
 
 #ifdef MMNGR_SSP_ENABLE
+#if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
 #define MM_SSPBUF_ADDR		(0x53000000UL)
 #define MM_SSPBUF_SIZE		(16 * 1024 * 1024)
 #endif
-#endif /* defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK) */
-
-#define	MM_CO_ORDER		(12)
+#endif
 
 #define MAX_LOSSY_ENTRIES		(16)
 #define MM_LOSSY_INFO_MAGIC		(0x12345678UL)
@@ -171,4 +225,98 @@ static int validate_memory_map(void);
 #define MM_LOSSY_SHARED_MEM_ADDR	(0x47FD7000UL)
 #define MM_LOSSY_SHARED_MEM_SIZE	(MAX_LOSSY_ENTRIES \
 					* sizeof(struct LOSSY_INFO))
+
+#ifdef IPMMU_MMU_SUPPORT
+static pgdval_t *ipmmu_mmu_pgd;
+
+#define IPMMUVP_BASE		(0xFE990000)
+#define IPMMUVI_BASE		(0xFEBD0000)
+#define IPMMUVC0_BASE		(0xFE6B0000)
+#define IPMMUVC1_BASE		(0xFE6F0000)
+#define IPMMUMM_BASE		(0xE67B0000)
+/* Available in H3 2.0 */
+#define IPMMUVP0_BASE		IPMMUVP_BASE
+#define IPMMUVP1_BASE		(0xFE980000)
+
+#define EAE			BIT(31)
+#define SH0			(BIT(13) | BIT(12))
+#define ORGN0_BIT10		BIT(10)
+#define IRGN0_BIT8		BIT(8)
+#define SL_BIT7			BIT(7)
+#define TSZ0_32BIT		0 /* 2^(32-0) */
+#define MMUEN			BIT(0)
+#define FLUSH			BIT(1)
+
+#define CUR_TTSEL		7	/* Pagetable no.7 */
+
+#define TTSEL(n)		(0x40 * (n))
+#define IMCTRn_OFFSET(n)	(0x0000 + TTSEL(n))
+#define IMTTBCRn_OFFSET(n)	(0x0008 + TTSEL(n))
+#define IMTTUBR0n_OFFSET(n)	(0x0014 + TTSEL(n))
+#define IMTTLBR0n_OFFSET(n)	(0x0010 + TTSEL(n))
+#define IMTTUBR1n_OFFSET(n)	(0x001c + TTSEL(n))
+#define IMTTLBR1n_OFFSET(n)	(0x0018 + TTSEL(n))
+#define IMSTRn_OFFSET(n)	(0x0020 + TTSEL(n))
+#define IMMAIR0n_OFFSET(n)	(0x0028 + TTSEL(n))
+#define IMMAIR1n_OFFSET(n)	(0x002c + TTSEL(n))
+#define IMELARn_OFFSET(n)	(0x0030 + TTSEL(n))
+#define IMEUARn_OFFSET(n)	(0x0034 + TTSEL(n))
+#define IMUCTRn_OFFSET(n)	(0x0300 + 0x10 * (n))
+#define IMUASIDn_OFFSET(n)	(0x0308 + 0x10 * (n))
+
+#define MAX_UTLB		(48)
+
+#define REG_SIZE		IMUASIDn_OFFSET(MAX_UTLB)
+#define IMCTR_VAL		(MMUEN | FLUSH)
+#define IMCTR_MM_VAL		(IMCTR_VAL)
+#define IMTTBCR_VAL		(EAE | SH0 | ORGN0_BIT10 | IRGN0_BIT8 | \
+				 SL_BIT7 | TSZ0_32BIT)
+#define IMMAIR0_VAL		(0x5500)
+#define IMUCTR_VAL		((CUR_TTSEL << 4) | MMUEN | FLUSH)
+#define IMTTLBR_VAL		__pa(ipmmu_mmu_pgd)
+#define IMTTUBR_VAL		(__pa(ipmmu_mmu_pgd) >> 32)
+
+/* Page entry setting */
+#define BLOCK_ENTRY_CONFIG	(0x721 | BIT(2))
+#define IPMMU_BLOCK_PGDVAL(phys_addr)	((phys_addr) | BLOCK_ENTRY_CONFIG)
+
+/* Table entries for H3 */
+#define H3_IPMMU_ADDR_SECTION_0	0x0700000000ULL
+#define H3_IPMMU_ADDR_SECTION_1	0x0040000000ULL
+#define H3_IPMMU_ADDR_SECTION_2	0x0500000000ULL
+#define H3_IPMMU_ADDR_SECTION_3	0x0600000000ULL
+/* Table entries for M3 */
+#define M3_IPMMU_ADDR_SECTION_0	0x0640000000ULL
+#define M3_IPMMU_ADDR_SECTION_1	0x0040000000ULL
+#define M3_IPMMU_ADDR_SECTION_2	0x0080000000ULL
+#define M3_IPMMU_ADDR_SECTION_3	0x0600000000ULL
+
+#define IPMMU_PGDVAL_SECTION_0	IPMMU_BLOCK_PGDVAL(ipmmu_addr_section_0)
+#define IPMMU_PGDVAL_SECTION_1	IPMMU_BLOCK_PGDVAL(ipmmu_addr_section_1)
+#define IPMMU_PGDVAL_SECTION_2	IPMMU_BLOCK_PGDVAL(ipmmu_addr_section_2)
+#define IPMMU_PGDVAL_SECTION_3	IPMMU_BLOCK_PGDVAL(ipmmu_addr_section_3)
+
+/* Translation table for all IPMMU in R-Car H3 */
+static phys_addr_t h3_mmu_table[4] = {
+H3_IPMMU_ADDR_SECTION_0, H3_IPMMU_ADDR_SECTION_1,
+H3_IPMMU_ADDR_SECTION_2, H3_IPMMU_ADDR_SECTION_3,
+};
+
+/* Translation table for all IPMMU in R-Car M3 */
+static phys_addr_t m3_mmu_table[4] = {
+M3_IPMMU_ADDR_SECTION_0, M3_IPMMU_ADDR_SECTION_1,
+M3_IPMMU_ADDR_SECTION_2, M3_IPMMU_ADDR_SECTION_3,
+};
+
+static void create_l1_pgtable(void);
+static void free_lx_pgtable(void);
+static void ipmmu_mmu_startup(void);
+static void ipmmu_mmu_cleanup(void);
+static int ipmmu_mmu_initialize(void);
+static void ipmmu_mmu_deinitialize(void);
+static unsigned int ipmmu_mmu_phys2virt(phys_addr_t paddr);
+static phys_addr_t ipmmu_mmu_virt2phys(unsigned int vaddr);
+
+#endif /* IPMMU_MMU_SUPPORT */
+
 #endif	/* __MMNGR_PRIVATE_H__ */
