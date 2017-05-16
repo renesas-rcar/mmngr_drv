@@ -50,3 +50,11 @@ MMNGR v0.12
 	2. Add UTLB for FCP-VB (VSPB) as PMB entry on H3 WS1.x and M3.
 	3. Revert UTLB for FCP-VI (VSPI) as PMB entry on H3 ES2.0.
 	4. Change the translation policy in Lossy area on H3 ES2.0.
+
+MMNGR v0.13
+	1. Remove IPMMU(PMB) support due to hardware restriction.
+	2. Add IPMMU(MMU) support for memory allocation.
+	3. Fix compiler warnings.
+	4. Add System Suspend-to-RAM support for IPMMU(MMU).
+	5. Disable TLB function in IPMMU-VC0/VC1/VP0/VP1 due to hardware restriction.
+	6. Add IPMMU(MMU) support for SSP.
