@@ -218,7 +218,6 @@ static struct rcar_ipmmu *r8a7795es1_ipmmu[] = {
 /* R-Car H3 (R8A7795 ES2.0) */
 static struct ip_master r8a7795_ipmmuvc0_masters[] = {
 	{"FCP-CS osid0", 8},
-	{"FCP-CS osid4", 12},
 };
 
 static struct rcar_ipmmu r8a7795_ipmmuvc0 = {
@@ -232,7 +231,6 @@ static struct rcar_ipmmu r8a7795_ipmmuvc0 = {
 
 static struct ip_master r8a7795_ipmmuvc1_masters[] = {
 	{"FCP-CS osid0", 8},
-	{"FCP-CS osid4", 12},
 };
 
 static struct rcar_ipmmu r8a7795_ipmmuvc1 = {
