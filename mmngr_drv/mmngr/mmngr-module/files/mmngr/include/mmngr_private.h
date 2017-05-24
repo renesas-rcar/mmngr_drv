@@ -201,7 +201,7 @@ static void mm_exit(void);
 
 static int validate_memory_map(void);
 
-#if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
+#ifdef MMNGR_SALVATORX
 #ifdef IPMMU_MMU_SUPPORT
 	#define MM_OMXBUF_ADDR	(mm_kernel_reserve_addr)
 #else
@@ -209,12 +209,12 @@ static int validate_memory_map(void);
 #endif /* IPMMU_MMU_SUPPORT */
 
 #define MM_OMXBUF_SIZE		(256 * 1024 * 1024)
-#endif /* MMNGR_SALVATORX || MMNGR_KRIEK */
+#endif /* MMNGR_SALVATORX */
 
 #define	MM_CO_ORDER		(12)
 
 #ifdef MMNGR_SSP_ENABLE
-#if defined(MMNGR_SALVATORX) || defined(MMNGR_KRIEK)
+#ifdef MMNGR_SALVATORX
 #define MM_SSPBUF_ADDR		(0x53000000UL)
 #define MM_SSPBUF_SIZE		(16 * 1024 * 1024)
 #endif
