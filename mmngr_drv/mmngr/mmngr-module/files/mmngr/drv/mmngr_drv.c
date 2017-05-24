@@ -140,6 +140,7 @@ static struct hw_register ipmmumm_ip_regs[] = {
 static struct hw_register ipmmu_ip_regs[] = {
 	{"IMCTR",	IMCTRn_OFFSET(CUR_TTSEL)},
 	{"IMUASID",	IMUASIDn_OFFSET(CUR_TTSEL)},
+	{"IMSCTLR",	IMSCTLR_OFFSET},
 	/*
 	 * IMUCTRn_OFFSET(n) is not defined here
 	 * The register is calculated base on IP utlb_no value
@@ -1104,6 +1105,19 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 		else
 			ret = -1;
 
+	} else if (handling == DISABLE_MMU_TLB) { /* Disable MMU TLB */
+		for (j = 0; j < reg_count; j++) {
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMSCTLR"))
+				break;
+		}
+
+		if (j < reg_count) /* Found IMSCTLR */
+			iowrite32(0xE0000000 | ioread32(
+				  virt_addr + ipmmu_reg[j].reg_offset),
+				  virt_addr + ipmmu_reg[j].reg_offset);
+		else
+			ret = -1;
+
 	} else if (handling == SET_TRANSLATION_TABLE) {
 		/* Enable MMU translation for IPMMU */
 		for (j = 0; j < reg_count; j++) {
@@ -1457,6 +1471,8 @@ static int ipmmu_mmu_initialize(void)
 	__handle_registers(&ipmmumm, SET_TRANSLATION_TABLE);
 	__handle_registers(&ipmmumm, ENABLE_MMU_MM);
 
+	if (soc_is_r8a7795)
+		handle_registers(rcar_gen3_ipmmu, DISABLE_MMU_TLB);
 	handle_registers(rcar_gen3_ipmmu, ENABLE_MMU);
 	handle_registers(rcar_gen3_ipmmu, ENABLE_UTLB);
 	__handle_registers(&ipmmumm, CLEAR_MMU_STATUS_REGS);

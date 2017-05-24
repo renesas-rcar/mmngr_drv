@@ -103,6 +103,7 @@ enum {
 	ENABLE_MMU_MM,
 	DISABLE_MMU_MM,
 	ENABLE_MMU,
+	DISABLE_MMU_TLB,
 	DISABLE_MMU,
 	SET_TRANSLATION_TABLE,
 	CLEAR_MMU_STATUS_REGS,
@@ -263,6 +264,7 @@ static pgdval_t *ipmmu_mmu_pgd;
 #define IMEUARn_OFFSET(n)	(0x0034 + TTSEL(n))
 #define IMUCTRn_OFFSET(n)	(0x0300 + 0x10 * (n))
 #define IMUASIDn_OFFSET(n)	(0x0308 + 0x10 * (n))
+#define IMSCTLR_OFFSET		(0x0500)
 
 #define MAX_UTLB		(48)
 
