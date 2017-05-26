@@ -96,6 +96,7 @@ static bool			have_lossy_entries;
 static bool			is_sspbuf_valid = false;
 #endif
 #ifdef IPMMU_MMU_SUPPORT
+static bool			ipmmu_common_init_done;
 static bool			soc_is_r8a7795;
 static u64			ipmmu_addr_section_0;
 static u64			ipmmu_addr_section_1;
@@ -1226,6 +1227,13 @@ static int ipmmu_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	const struct rcar_ipmmu_data *data;
 
+	/*
+	 * Although MMNGR driver supports some IPMMU cache(s),
+	 * below processing should only run once.
+	 */
+	if (ipmmu_common_init_done)
+		return 0;
+
 	data = of_device_get_match_data(dev);
 	if (!data)
 		return -1;
@@ -1249,6 +1257,8 @@ static int ipmmu_probe(struct platform_device *pdev)
 	ipmmu_addr_section_1 = ipmmu_mmu_trans_table[1];
 	ipmmu_addr_section_2 = ipmmu_mmu_trans_table[2];
 	ipmmu_addr_section_3 = ipmmu_mmu_trans_table[3];
+
+	ipmmu_common_init_done = true;
 
 	return 0;
 }
