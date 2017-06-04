@@ -140,7 +140,6 @@ static struct hw_register ipmmumm_ip_regs[] = {
 /* For each IPMMU cache */
 static struct hw_register ipmmu_ip_regs[] = {
 	{"IMCTR",	IMCTRn_OFFSET(CUR_TTSEL)},
-	{"IMUASID",	IMUASIDn_OFFSET(CUR_TTSEL)},
 	{"IMSCTLR",	IMSCTLR_OFFSET},
 	/*
 	 * IMUCTRn_OFFSET(n) is not defined here

@@ -272,7 +272,6 @@ static pgdval_t *ipmmu_mmu_pgd;
 #define IMUCTR0(n)		(0x300 + ((n) * 16))
 #define IMUCTR32(n)		(0x600 + (((n) - 32) * 16))
 #define IMUCTRn_OFFSET(n)	((n) < 32 ? IMUCTR0(n) : IMUCTR32(n))
-#define IMUASIDn_OFFSET(n)	(0x0308 + 0x10 * (n))
 #define IMSCTLR_OFFSET		(0x0500)
 
 #define MAX_UTLB		(48)
