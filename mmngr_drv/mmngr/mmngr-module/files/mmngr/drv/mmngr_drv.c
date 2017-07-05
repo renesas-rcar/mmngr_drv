@@ -1558,16 +1558,17 @@ static void create_l1_pgtable(void)
 		pgdval_addr[3] = IPMMU_PGDVAL_SECTION_3;
 
 		ipmmu_mmu_pgd = pgdval_addr;
-	}
-	isb();
-	dma_rmb();
 
-	for (i = 0; i < 4; i++)
-		pr_debug("L1: ipmmu_mmu_pgd[%d] 0x%llx\n", i, ipmmu_mmu_pgd[i]);
+		isb();
+		dma_rmb();
 
-	for (i = 0; i < 4; i++) {
-		pr_debug("ipmmu_mmu_trans_table[%d]: 0x%llx\n", i,
-			 ipmmu_mmu_trans_table[i]);
+		for (i = 0; i < 4; i++)
+			pr_debug("L1: ipmmu_mmu_pgd[%d] 0x%llx\n", i,
+				 ipmmu_mmu_pgd[i]);
+
+		for (i = 0; i < 4; i++)
+			pr_debug("ipmmu_mmu_trans_table[%d]: 0x%llx\n", i,
+				 ipmmu_mmu_trans_table[i]);
 	}
 }
 
