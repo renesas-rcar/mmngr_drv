@@ -84,13 +84,13 @@ struct BM {
 };
 
 struct LOSSY_INFO {
-	uint32_t magic;
-	uint32_t a0;
-	uint32_t b0;
+	u32 magic;
+	u32 a0;
+	u32 b0;
 };
 
 struct LOSSY_DATA {
-	uint32_t fmt;
+	u32 fmt;
 	struct BM *bm_lossy;
 };
 
@@ -230,7 +230,6 @@ static int validate_memory_map(void);
 					* sizeof(struct LOSSY_INFO))
 
 #ifdef IPMMU_MMU_SUPPORT
-static pgdval_t *ipmmu_mmu_pgd;
 
 #define IPMMUVP_BASE		(0xFE990000)
 #define IPMMUVI_BASE		(0xFEBD0000)
@@ -305,18 +304,6 @@ static pgdval_t *ipmmu_mmu_pgd;
 #define IPMMU_PGDVAL_SECTION_1	IPMMU_BLOCK_PGDVAL(ipmmu_addr_section_1)
 #define IPMMU_PGDVAL_SECTION_2	IPMMU_BLOCK_PGDVAL(ipmmu_addr_section_2)
 #define IPMMU_PGDVAL_SECTION_3	IPMMU_BLOCK_PGDVAL(ipmmu_addr_section_3)
-
-/* Translation table for all IPMMU in R-Car H3 */
-static phys_addr_t h3_mmu_table[4] = {
-H3_IPMMU_ADDR_SECTION_0, H3_IPMMU_ADDR_SECTION_1,
-H3_IPMMU_ADDR_SECTION_2, H3_IPMMU_ADDR_SECTION_3,
-};
-
-/* Translation table for all IPMMU in R-Car M3 */
-static phys_addr_t m3_mmu_table[4] = {
-M3_IPMMU_ADDR_SECTION_0, M3_IPMMU_ADDR_SECTION_1,
-M3_IPMMU_ADDR_SECTION_2, M3_IPMMU_ADDR_SECTION_3,
-};
 
 static void create_l1_pgtable(void);
 static void free_lx_pgtable(void);

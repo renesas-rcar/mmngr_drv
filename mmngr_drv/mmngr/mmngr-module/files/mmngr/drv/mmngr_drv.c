@@ -103,6 +103,23 @@ static u64			ipmmu_addr_section_1;
 static u64			ipmmu_addr_section_2;
 static u64			ipmmu_addr_section_3;
 static phys_addr_t		*ipmmu_mmu_trans_table;
+static pgdval_t			*ipmmu_mmu_pgd;
+
+/* Translation table for all IPMMU in R-Car H3 */
+static phys_addr_t h3_mmu_table[4] = {
+	H3_IPMMU_ADDR_SECTION_0,
+	H3_IPMMU_ADDR_SECTION_1,
+	H3_IPMMU_ADDR_SECTION_2,
+	H3_IPMMU_ADDR_SECTION_3,
+};
+
+/* Translation table for all IPMMU in R-Car M3 */
+static phys_addr_t m3_mmu_table[4] = {
+	M3_IPMMU_ADDR_SECTION_0,
+	M3_IPMMU_ADDR_SECTION_1,
+	M3_IPMMU_ADDR_SECTION_2,
+	M3_IPMMU_ADDR_SECTION_3,
+};
 #endif
 
 /* Attribute structs describing Salvator-X revisions */
@@ -517,7 +534,7 @@ static int mm_ioc_alloc_co(struct BM *pb, int __user *in, struct MM_PARAM *out)
 
 static int find_lossy_entry(unsigned int flag, int *entry)
 {
-	uint32_t	i, fmt;
+	u32	i, fmt;
 	int		ret;
 
 	if (!have_lossy_entries)
@@ -565,10 +582,10 @@ static int mm_ioc_alloc_co_select(int __user *in, struct MM_PARAM *out)
 	}
 #else
 	else if (tmp.flag == MM_CARVEOUT_SSP)
-	if (is_sspbuf_valid)
-		ret = mm_ioc_alloc_co(&bm_ssp, in, out);
-	else
-		ret = -ENOMEM;
+		if (is_sspbuf_valid)
+			ret = mm_ioc_alloc_co(&bm_ssp, in, out);
+		else
+			ret = -ENOMEM;
 #endif
 	else if ((tmp.flag & 0xF) == MM_CARVEOUT_LOSSY) {
 		ret = find_lossy_entry(tmp.flag, &entry);
@@ -598,11 +615,11 @@ static void mm_ioc_free_co_select(struct MM_PARAM *p)
 {
 	int		entry = 0;
 
-	if (p->flag == MM_CARVEOUT)
+	if (p->flag == MM_CARVEOUT) {
 		mm_ioc_free_co(&bm, p);
-	else if (p->flag == MM_CARVEOUT_SSP)
+	} else if (p->flag == MM_CARVEOUT_SSP) {
 		mm_ioc_free_co(&bm_ssp, p);
-	else if ((p->flag & 0xF) == MM_CARVEOUT_LOSSY) {
+	} else if ((p->flag & 0xF) == MM_CARVEOUT_LOSSY) {
 		find_lossy_entry(p->flag, &entry);
 		if (entry >= 0)
 			mm_ioc_free_co(lossy_entries[entry].bm_lossy, p);
@@ -667,11 +684,11 @@ static int close(struct inode *inode, struct file *file)
 		} else if ((p->flag == MM_CARVEOUT_SSP)
 		&& (p->phy_addr != 0)) {
 #ifdef MMNGR_SSP_ENABLE
-		if (is_sspbuf_valid) {
-			pr_err("MMD close carveout SSP\n");
-			pb = &bm_ssp;
-			mm_ioc_free_co(pb, p);
-		}
+			if (is_sspbuf_valid) {
+				pr_err("MMD close carveout SSP\n");
+				pb = &bm_ssp;
+				mm_ioc_free_co(pb, p);
+			}
 #endif
 		} else if (((p->flag & 0xF) == MM_CARVEOUT_LOSSY)
 		&& (p->phy_addr != 0)) {
@@ -991,11 +1008,11 @@ static int init_lossy_info(void)
 {
 	int ret = 0;
 	void __iomem *mem;
-	uint32_t i, fmt;
-	uint64_t start, end;
+	u32 i, fmt;
+	u64 start, end;
 	struct BM *bm_lossy;
 	struct LOSSY_INFO *p;
-	uint32_t total_lossy_size = 0;
+	u32 total_lossy_size = 0;
 
 	have_lossy_entries = false;
 
@@ -1081,7 +1098,7 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 
 		pr_debug("\n%s: DO_IOREMAP: %s, virt_addr 0x%lx\n",
 			 __func__, ipmmu->ipmmu_name,
-			 (unsigned long) ipmmu->virt_addr);
+			 (unsigned long)ipmmu->virt_addr);
 
 	} else if (handling == DO_IOUNMAP) { /* iounmap*/
 		/* IOUNMAP registers in an IPMMU */
@@ -1089,7 +1106,7 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 		ipmmu->virt_addr = NULL;
 		pr_debug("%s: DO_IOUNMAP: %s, virt_addr 0x%lx\n",
 			 __func__, ipmmu->ipmmu_name,
-			 (unsigned long) ipmmu->virt_addr);
+			 (unsigned long)ipmmu->virt_addr);
 
 	} else if (handling == ENABLE_UTLB) { /* Enable utlb for IP master */
 		for (j = 0; j < masters_count; j++)
@@ -1177,9 +1194,12 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 				break;
 		}
 
-		iowrite32(IMTTUBR_VAL, virt_addr + ipmmu_reg[j+1].reg_offset);
-		iowrite32(IMTTLBR_VAL, virt_addr + ipmmu_reg[j+2].reg_offset);
-		iowrite32(IMMAIR0_VAL, virt_addr + ipmmu_reg[j+3].reg_offset);
+		iowrite32(IMTTUBR_VAL,
+			  virt_addr + ipmmu_reg[j + 1].reg_offset);
+		iowrite32(IMTTLBR_VAL,
+			  virt_addr + ipmmu_reg[j + 2].reg_offset);
+		iowrite32(IMMAIR0_VAL,
+			  virt_addr + ipmmu_reg[j + 3].reg_offset);
 		iowrite32(IMTTBCR_VAL, virt_addr + ipmmu_reg[j].reg_offset);
 
 	} else if (handling == CLEAR_MMU_STATUS_REGS) { /* Clear MMU status */
@@ -1207,7 +1227,6 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 					 ioread32(virt_addr +
 						  ipmmu_reg[j].reg_offset));
 		}
-
 
 	} else if (handling == BACKUP_MMU_REGS) { /* Backup IPMMU(MMU) regs */
 		for (j = 0; j < reg_count; j++) {
@@ -1486,7 +1505,6 @@ static int mm_probe(struct platform_device *pdev)
 	p->mm_dev = dev;
 	mm_drvdata = p;
 
-
 	spin_lock_init(&lock);
 
 	return 0;
@@ -1494,7 +1512,7 @@ static int mm_probe(struct platform_device *pdev)
 
 static int mm_remove(struct platform_device *pdev)
 {
-	uint32_t i;
+	u32 i;
 
 	misc_deregister(&misc);
 
