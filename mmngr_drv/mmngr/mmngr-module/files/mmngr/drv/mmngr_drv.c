@@ -93,7 +93,7 @@ static u64			mm_lossybuf_addr;
 static u64			mm_lossybuf_size;
 static bool			have_lossy_entries;
 #ifdef MMNGR_SSP_ENABLE
-static bool			is_sspbuf_valid = false;
+static bool			is_sspbuf_valid;
 #endif
 #ifdef IPMMU_MMU_SUPPORT
 static bool			ipmmu_common_init_done;
