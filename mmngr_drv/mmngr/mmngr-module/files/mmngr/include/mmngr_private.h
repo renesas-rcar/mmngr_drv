@@ -305,6 +305,10 @@ static int validate_memory_map(void);
 #define IPMMU_PGDVAL_SECTION_2	IPMMU_BLOCK_PGDVAL(ipmmu_addr_section_2)
 #define IPMMU_PGDVAL_SECTION_3	IPMMU_BLOCK_PGDVAL(ipmmu_addr_section_3)
 
+static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling);
+static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling);
+static int ipmmu_probe(struct platform_device *pdev);
+static int ipmmu_remove(struct platform_device *pdev);
 static void create_l1_pgtable(void);
 static void free_lx_pgtable(void);
 static void ipmmu_mmu_startup(void);
