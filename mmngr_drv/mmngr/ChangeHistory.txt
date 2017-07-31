@@ -58,7 +58,3 @@ MMNGR v0.13
 	4. Add System Suspend-to-RAM support for IPMMU(MMU).
 	5. Disable TLB function in IPMMU-VC0/VC1/VP0/VP1 due to hardware restriction.
 	6. Add IPMMU(MMU) support for SSP.
-
-MMNGR v1.0
-	1. Fix condition checking in create_l1_pgtable() function
-	2. Improve coding style and readability
