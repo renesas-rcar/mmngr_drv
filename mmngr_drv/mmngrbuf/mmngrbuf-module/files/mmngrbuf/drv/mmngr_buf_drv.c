@@ -279,23 +279,23 @@ static int dmabuf_end_cpu_access(struct dma_buf *buf,
 	return 0;
 }
 
-static void *dmabuf_kmap_atomic(struct dma_buf *buf, unsigned long page)
+static void *dmabuf_map_atomic(struct dma_buf *buf, unsigned long page)
 {
 	return NULL;
 }
 
-static void dmabuf_kunmap_atomic(struct dma_buf *buf, unsigned long page,
-	void *vaddr)
+static void dmabuf_unmap_atomic(struct dma_buf *buf, unsigned long page,
+				void *vaddr)
 {
 
 }
 
-static void *dmabuf_kmap(struct dma_buf *buf, unsigned long page)
+static void *dmabuf_map(struct dma_buf *buf, unsigned long page)
 {
 	return NULL;
 }
 
-static void dmabuf_kunmap(struct dma_buf *buf, unsigned long page, void *vaddr)
+static void dmabuf_unmap(struct dma_buf *buf, unsigned long page, void *vaddr)
 {
 
 }
@@ -334,10 +334,10 @@ static const struct dma_buf_ops dmabuf_ops = {
 	.release = dmabuf_release,
 	.begin_cpu_access = dmabuf_begin_cpu_access,
 	.end_cpu_access = dmabuf_end_cpu_access,
-	.kmap_atomic = dmabuf_kmap_atomic,
-	.kunmap_atomic = dmabuf_kunmap_atomic,
-	.kmap = dmabuf_kmap,
-	.kunmap = dmabuf_kunmap,
+	.map_atomic = dmabuf_map_atomic,
+	.unmap_atomic = dmabuf_unmap_atomic,
+	.map = dmabuf_map,
+	.unmap = dmabuf_unmap,
 	.mmap = dmabuf_mmap,
 	.vmap = dmabuf_vmap,
 	.vunmap = dmabuf_vunmap,
