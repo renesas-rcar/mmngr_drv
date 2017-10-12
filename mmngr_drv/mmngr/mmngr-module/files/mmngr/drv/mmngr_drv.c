@@ -120,6 +120,14 @@ static phys_addr_t m3_mmu_table[4] = {
 	M3_IPMMU_ADDR_SECTION_2,
 	M3_IPMMU_ADDR_SECTION_3,
 };
+
+/* Translation table for all IPMMU in R-Car M3N */
+static phys_addr_t m3n_mmu_table[4] = {
+	M3N_IPMMU_ADDR_SECTION_0,
+	M3N_IPMMU_ADDR_SECTION_1,
+	M3N_IPMMU_ADDR_SECTION_2,
+	M3N_IPMMU_ADDR_SECTION_3,
+};
 #endif
 
 /* Attribute structs describing Salvator-X revisions */
@@ -138,6 +146,12 @@ static const struct soc_device_attribute r8a7795[]  = {
 /* M3 */
 static const struct soc_device_attribute r8a7796[]  = {
 	{ .soc_id = "r8a7796" },
+	{}
+};
+
+/* M3N */
+static const struct soc_device_attribute r8a77965[]  = {
+	{ .soc_id = "r8a77965" },
 	{}
 };
 
@@ -384,6 +398,59 @@ static struct rcar_ipmmu *r8a7796_ipmmu[] = {
 #endif
 	&r8a7796_ipmmuvi,
 	&r8a7796_ipmmuvc0,
+	NULL, /* End of list */
+};
+
+/* R-Car M3N (R8A77965 ES1.0) */
+static struct ip_master r8a77965_ipmmuvc0_masters[] = {
+	{"FCP-CS osid0", 8},
+};
+
+static struct rcar_ipmmu r8a77965_ipmmuvc0 = {
+	.ipmmu_name	= "IPMMUVC0",
+	.base_addr	= IPMMUVC0_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a77965_ipmmuvc0_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a77965_ipmmuvc0_masters,
+};
+
+static struct ip_master r8a77965_ipmmuvp0_masters[] = {
+	{"FCP-F ch0",	0},
+	{"FCP-VB ch0",	5},
+	{"FCP-VI ch0",	8},
+};
+
+static struct rcar_ipmmu r8a77965_ipmmuvp0 = {
+	.ipmmu_name	= "IPMMUVP0",
+	.base_addr	= IPMMUVP0_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a77965_ipmmuvp0_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a77965_ipmmuvp0_masters,
+};
+
+#ifdef MMNGR_SSP_ENABLE
+static struct ip_master r8a77965_ipmmuds1_masters[] = {
+	{"SSP1",	36},
+};
+
+static struct rcar_ipmmu r8a77965_ipmmuds1 = {
+	.ipmmu_name	= "IPMMUDS1",
+	.base_addr	= IPMMUDS1_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a77965_ipmmuds1_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a77965_ipmmuds1_masters,
+};
+#endif
+
+static struct rcar_ipmmu *r8a77965_ipmmu[] = {
+#ifdef MMNGR_SSP_ENABLE
+	&r8a77965_ipmmuds1,
+#endif
+	&r8a77965_ipmmuvp0,
+	&r8a77965_ipmmuvc0,
 	NULL, /* End of list */
 };
 
@@ -1322,6 +1389,8 @@ static int ipmmu_probe(struct platform_device *pdev)
 
 	if (soc_device_match(r8a7796))
 		ipmmu_mmu_trans_table = m3_mmu_table;
+	else if (soc_device_match(r8a77965))
+		ipmmu_mmu_trans_table = m3n_mmu_table;
 	else /* H3 */
 		ipmmu_mmu_trans_table = h3_mmu_table;
 
@@ -1348,6 +1417,10 @@ static const struct rcar_ipmmu_data r8a7796_ipmmu_data = {
 	.ipmmu_data = r8a7796_ipmmu,
 };
 
+static const struct rcar_ipmmu_data r8a77965_ipmmu_data = {
+	.ipmmu_data = r8a77965_ipmmu,
+};
+
 static const struct of_device_id ipmmu_of_match[] = {
 	{
 	  .compatible	= "renesas,ipmmu-mmu-r8a7795",
@@ -1356,6 +1429,10 @@ static const struct of_device_id ipmmu_of_match[] = {
 	{
 	  .compatible	= "renesas,ipmmu-mmu-r8a7796",
 	  .data = &r8a7796_ipmmu_data
+	},
+	{
+	  .compatible	= "renesas,ipmmu-mmu-r8a77965",
+	  .data = &r8a77965_ipmmu_data
 	},
 	{ },
 };
