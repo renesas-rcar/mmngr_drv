@@ -64,3 +64,6 @@ MMNGR v1.0
 	2. Improve coding style and readability.
 	3. Fix error message due to static variable initialization to false.
 	4. Add IPMMU function prototype declaration.
+
+MMNGR v1.1
+	1. Add IPMMU(MMU) support for R-Car M3N Ver1.0.
