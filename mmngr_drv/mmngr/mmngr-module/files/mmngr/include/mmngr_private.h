@@ -224,6 +224,11 @@ static int validate_memory_map(void);
 #define MM_OMXBUF_SIZE		(64 * 1024 * 1024)
 #endif /* MMNGR_EBISU */
 
+#ifdef MMNGR_V3MSK
+#define MM_OMXBUF_ADDR		(0x7F000000UL)
+#define MM_OMXBUF_SIZE		(16 * 1024 * 1024)
+#endif /* MMNGR_V3MSK */
+
 #define	MM_CO_ORDER		(12)
 
 #ifdef MMNGR_SSP_ENABLE
