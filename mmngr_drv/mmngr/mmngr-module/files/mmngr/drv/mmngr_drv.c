@@ -97,7 +97,7 @@ static bool			is_sspbuf_valid;
 #endif
 #ifdef IPMMU_MMU_SUPPORT
 static bool			ipmmu_common_init_done;
-static bool			soc_is_r8a7795;
+static bool			is_mmu_tlb_disabled;
 static u64			ipmmu_addr_section_0;
 static u64			ipmmu_addr_section_1;
 static u64			ipmmu_addr_section_2;
@@ -1382,10 +1382,10 @@ static int ipmmu_probe(struct platform_device *pdev)
 	else
 		rcar_gen3_ipmmu = data->ipmmu_data;
 
-	if (soc_device_match(r8a7795))
-		soc_is_r8a7795 = true;
+	if (soc_device_match(r8a7795) || soc_device_match(r8a77965))
+		is_mmu_tlb_disabled = true;
 	else
-		soc_is_r8a7795 = false;
+		is_mmu_tlb_disabled = false;
 
 	if (soc_device_match(r8a7796))
 		ipmmu_mmu_trans_table = m3_mmu_table;
@@ -1691,7 +1691,7 @@ static int ipmmu_mmu_initialize(void)
 	__handle_registers(&ipmmumm, SET_TRANSLATION_TABLE);
 	__handle_registers(&ipmmumm, ENABLE_MMU_MM);
 
-	if (soc_is_r8a7795)
+	if (is_mmu_tlb_disabled)
 		handle_registers(rcar_gen3_ipmmu, DISABLE_MMU_TLB);
 	handle_registers(rcar_gen3_ipmmu, ENABLE_MMU);
 	handle_registers(rcar_gen3_ipmmu, ENABLE_UTLB);
