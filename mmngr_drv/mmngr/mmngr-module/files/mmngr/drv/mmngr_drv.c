@@ -128,7 +128,6 @@ static phys_addr_t m3n_mmu_table[4] = {
 	M3N_IPMMU_ADDR_SECTION_2,
 	M3N_IPMMU_ADDR_SECTION_3,
 };
-#endif
 
 /* Attribute structs describing Salvator-X revisions */
 /* H3 WS1.0 and WS1.1 */
@@ -155,7 +154,6 @@ static const struct soc_device_attribute r8a77965[]  = {
 	{}
 };
 
-#ifdef IPMMU_MMU_SUPPORT
 /* For IPMMU Main Memory (IPMMUMM) */
 static struct hw_register ipmmumm_ip_regs[] = {
 	{"IMCTR",	IMCTRn_OFFSET(CUR_TTSEL)},
@@ -186,9 +184,7 @@ static struct rcar_ipmmu ipmmumm = {
 	.masters_count	= 0,
 	.ip_masters	= NULL,
 };
-#endif
 
-#ifdef IPMMU_MMU_SUPPORT
 static struct rcar_ipmmu **rcar_gen3_ipmmu;
 
 /* R-Car H3 (R8A7795 ES1.x) */
