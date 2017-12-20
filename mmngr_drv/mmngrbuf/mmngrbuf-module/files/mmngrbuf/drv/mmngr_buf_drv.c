@@ -91,13 +91,13 @@ static int close(struct inode *inode, struct file *file)
 
 	if (priv) {
 		if (priv->sgt) {
-			pr_err("unmap@close\n");
+			pr_err("%s unmap\n", __func__);
 			dma_buf_unmap_attachment(priv->attach,
 				priv->sgt, DMA_BIDIRECTIONAL);
 		}
 
 		if (priv->attach) {
-			pr_err("detach@close\n");
+			pr_err("%s detach\n", __func__);
 			dma_buf_detach(priv->dma_buf, priv->attach);
 		}
 
@@ -120,7 +120,7 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case MM_IOC_EXPORT_START:
 		ercd = mm_ioc_export_start((int __user *)arg, priv);
 		if (ercd) {
-			pr_err("MMD EXPORT START\n");
+			pr_err("%s MMD EXPORT START\n", __func__);
 			ret = ercd;
 			goto exit;
 		}
@@ -131,7 +131,7 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case MM_IOC_IMPORT_START:
 		ercd = mm_ioc_import_start((int __user *)arg, priv);
 		if (ercd) {
-			pr_err("MMD IMPORT START\n");
+			pr_err("%s MMD IMPORT START\n", __func__);
 			ret = ercd;
 			goto exit;
 		}
@@ -140,7 +140,7 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		mm_ioc_import_end(priv);
 		break;
 	default:
-		pr_err("MMD CMD EFAULT\n");
+		pr_err("%s MMD CMD EFAULT\n", __func__);
 		ret = -EFAULT;
 		goto exit;
 	}
