@@ -734,28 +734,29 @@ static int close(struct inode *inode, struct file *file)
 	if (p) {
 		if ((p->flag == MM_KERNELHEAP)
 		&& (p->kernel_virt_addr != 0)) {
-			pr_err("MMD close kernelheap\n");
+			pr_err("%s MMD kernelheap ERROR\n", __func__);
 			mm_dev = mm_drvdata->mm_dev;
 			dma_free_coherent(mm_dev, p->size,
 					(void *)p->kernel_virt_addr,
 					(dma_addr_t)p->phy_addr);
 		} else if ((p->flag == MM_CARVEOUT)
 		&& (p->phy_addr != 0)) {
-			pr_err("MMD close carveout\n");
+			pr_err("%s MMD carveout ERROR\n", __func__);
 			pb = &bm;
 			mm_ioc_free_co(pb, p);
 		} else if ((p->flag == MM_CARVEOUT_SSP)
 		&& (p->phy_addr != 0)) {
 #ifdef MMNGR_SSP_ENABLE
 			if (is_sspbuf_valid) {
-				pr_err("MMD close carveout SSP\n");
+				pr_err("%s MMD carveout SSP ERROR\n",
+				       __func__);
 				pb = &bm_ssp;
 				mm_ioc_free_co(pb, p);
 			}
 #endif
 		} else if (((p->flag & 0xF) == MM_CARVEOUT_LOSSY)
 		&& (p->phy_addr != 0)) {
-			pr_err("MMD close carveout LOSSY\n");
+			pr_err("%s MMD carveout LOSSY ERROR\n", __func__);
 			find_lossy_entry(p->flag, &entry);
 			if (entry >= 0) {
 				pb = lossy_entries[entry].bm_lossy;
@@ -783,7 +784,7 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case MM_IOC_ALLOC:
 		ercd = mm_ioc_alloc(mm_dev, (int __user *)arg, p);
 		if (ercd) {
-			pr_err("MMD ALLOC ENOMEM\n");
+			pr_err("%s MMD ALLOC ENOMEM\n", __func__);
 			ret = ercd;
 			goto exit;
 		}
@@ -794,7 +795,7 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case MM_IOC_SET:
 		ercd = mm_ioc_set((int __user *)arg, p);
 		if (ercd) {
-			pr_err("MMD SET EFAULT\n");
+			pr_err("%s MMD SET EFAULT\n", __func__);
 			ret = ercd;
 			goto exit;
 		}
@@ -802,7 +803,7 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case MM_IOC_GET:
 		ercd = mm_ioc_get(p, (int __user *)arg);
 		if (ercd) {
-			pr_err("MMD GET EFAULT\n");
+			pr_err("%s MMD GET EFAULT\n", __func__);
 			ret = ercd;
 			goto exit;
 		}
@@ -810,7 +811,7 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case MM_IOC_ALLOC_CO:
 		ercd = mm_ioc_alloc_co_select((int __user *)arg, p);
 		if (ercd) {
-			pr_err("MMD C ALLOC ENOMEM\n");
+			pr_err("%s MMD C ALLOC ENOMEM\n", __func__);
 			ret = ercd;
 			goto exit;
 		}
@@ -821,13 +822,13 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case MM_IOC_SHARE:
 		ercd = mm_ioc_share((int __user *)arg, p);
 		if (ercd) {
-			pr_err("MMD C SHARE EFAULT\n");
+			pr_err("%s MMD C SHARE EFAULT\n", __func__);
 			ret = ercd;
 			goto exit;
 		}
 		break;
 	default:
-		pr_err("MMD CMD EFAULT\n");
+		pr_err("%s MMD CMD EFAULT\n", __func__);
 		ret = -EFAULT;
 		goto exit;
 	}
@@ -1500,13 +1501,13 @@ static int mm_probe(struct platform_device *pdev)
 
 	ret = parse_reserved_mem_dt();
 	if (ret) {
-		pr_err("MMD mm_probe ERROR\n");
+		pr_err("%s MMD ERROR\n", __func__);
 		return -1;
 	}
 
 	ret = validate_memory_map();
 	if (ret) {
-		pr_err("MMD mm_probe ERROR\n");
+		pr_err("%s MMD ERROR\n", __func__);
 		return -1;
 	}
 
@@ -1517,7 +1518,7 @@ static int mm_probe(struct platform_device *pdev)
 #endif
 	ret = alloc_bm(&bm, MM_OMXBUF_ADDR, mm_omxbuf_size, MM_CO_ORDER);
 	if (ret) {
-		pr_err("MMD mm_probe ERROR\n");
+		pr_err("%s MMD ERROR\n", __func__);
 		return -1;
 	}
 
@@ -1526,7 +1527,7 @@ static int mm_probe(struct platform_device *pdev)
 		ret = alloc_bm(&bm_ssp, MM_SSPBUF_ADDR, MM_SSPBUF_SIZE,
 				MM_CO_ORDER);
 		if (ret) {
-			pr_err("MMD mm_probe ERROR\n");
+			pr_err("%s MMD ERROR\n", __func__);
 			return -1;
 		}
 	}
