@@ -116,18 +116,18 @@ enum {
 };
 
 struct hw_register {
-	char *reg_name;
+	const char *reg_name;
 	unsigned int reg_offset;
 	unsigned int reg_val;
 };
 
 struct ip_master {
-	char *ip_name;
+	const char *ip_name;
 	unsigned int utlb_no;
 };
 
 struct rcar_ipmmu {
-	char *ipmmu_name;
+	const char *ipmmu_name;
 	unsigned int base_addr;
 	void __iomem *virt_addr;
 	unsigned int reg_count;
@@ -187,8 +187,8 @@ static int mm_ioc_share(int __user *in, struct MM_PARAM *out);
 static void mmngr_dev_set_cma_area(struct device *dev, struct cma *cma);
 static int init_lossy_info(void);
 static int find_lossy_entry(unsigned int flag, int *entry);
-static int _parse_reserved_mem_dt(char *dt_path,
-			u64 *addr, u64 *size);
+static int _parse_reserved_mem_dt(const char *dt_path,
+				  u64 *addr, u64 *size);
 static int parse_reserved_mem_dt(void);
 static int open(struct inode *inode, struct file *file);
 static int close(struct inode *inode, struct file *file);

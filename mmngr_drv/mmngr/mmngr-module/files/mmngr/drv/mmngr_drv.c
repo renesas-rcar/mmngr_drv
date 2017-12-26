@@ -1016,7 +1016,7 @@ static int validate_memory_map(void)
 	int ret = 0;
 #ifdef MMNGR_SSP_ENABLE
 	unsigned long buf_size;
-	char *buf_name;
+	const char *buf_name;
 #endif
 
 	if (mm_kernel_reserve_size < MM_OMXBUF_SIZE) {
@@ -1060,8 +1060,8 @@ static int validate_memory_map(void)
 	return ret;
 }
 
-static int _parse_reserved_mem_dt(char *dt_path,
-			u64 *addr, u64 *size)
+static int _parse_reserved_mem_dt(const char *dt_path,
+				  u64 *addr, u64 *size)
 {
 	const __be32 *regaddr_p;
 	struct device_node *node;
