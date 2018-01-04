@@ -85,8 +85,6 @@ static struct BM		bm_ssp;
 static struct LOSSY_DATA	lossy_entries[MAX_LOSSY_ENTRIES];
 static struct MM_DRVDATA	*mm_drvdata;
 static struct cma		*mm_cma_area;
-static u64			mm_common_reserve_addr;
-static u64			mm_common_reserve_size;
 static u64			mm_kernel_reserve_addr;
 static u64			mm_kernel_reserve_size;
 static u64			mm_lossybuf_addr;
@@ -1086,15 +1084,6 @@ static int _parse_reserved_mem_dt(const char *dt_path,
 static int parse_reserved_mem_dt(void)
 {
 	int ret = 0;
-
-	ret = _parse_reserved_mem_dt(
-			"/reserved-memory/linux,cma",
-			&mm_common_reserve_addr, &mm_common_reserve_size);
-	if (ret) {
-		pr_warn("Failed to parse common CMA reserved area" \
-			 "(linux,cma) from DT\n");
-		return ret;
-	}
 
 	ret = _parse_reserved_mem_dt(
 			"/reserved-memory/linux,multimedia",
