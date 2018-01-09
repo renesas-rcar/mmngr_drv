@@ -1,7 +1,7 @@
 /*************************************************************************/ /*
  MMNGR
 
- Copyright (C) 2015-2017 Renesas Electronics Corporation
+ Copyright (C) 2015-2018 Renesas Electronics Corporation
 
  License        Dual MIT/GPLv2
 
@@ -1262,9 +1262,9 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 			  virt_addr + ipmmu_reg[j + 1].reg_offset);
 		iowrite32(IMTTLBR_VAL,
 			  virt_addr + ipmmu_reg[j + 2].reg_offset);
+		iowrite32(IMTTBCR_VAL, virt_addr + ipmmu_reg[j].reg_offset);
 		iowrite32(IMMAIR0_VAL,
 			  virt_addr + ipmmu_reg[j + 3].reg_offset);
-		iowrite32(IMTTBCR_VAL, virt_addr + ipmmu_reg[j].reg_offset);
 
 	} else if (handling == CLEAR_MMU_STATUS_REGS) { /* Clear MMU status */
 		for (j = 0; j < reg_count; j++) {
