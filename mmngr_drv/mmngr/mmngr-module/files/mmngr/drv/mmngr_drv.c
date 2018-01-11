@@ -1323,6 +1323,19 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 
 		iowrite32(0, virt_addr + ipmmu_reg[j].reg_offset);
 
+	} else if (handling == INVALIDATE_TLB) { /* Invalidate TLB */
+		for (j = 0; j < reg_count; j++) {
+			if (!strcmp(ipmmu_reg[j].reg_name, "IMCTR"))
+				break;
+		}
+
+		if (j < reg_count) /* Found IMCTR */
+			iowrite32(FLUSH | ioread32(
+				  virt_addr + ipmmu_reg[j].reg_offset),
+				  virt_addr + ipmmu_reg[j].reg_offset);
+		else
+			ret = -1;
+
 	} else if (handling == PRINT_MMU_DEBUG) { /* Print MMU status */
 		for (j = 0; j < reg_count; j++) {
 			if (j == 0)
@@ -1764,8 +1777,10 @@ static void ipmmu_mmu_deinitialize(void)
 	handle_registers(rcar_gen3_ipmmu, PRINT_MMU_DEBUG);
 
 	handle_registers(rcar_gen3_ipmmu, DISABLE_UTLB);
+	handle_registers(rcar_gen3_ipmmu, INVALIDATE_TLB);
 	handle_registers(rcar_gen3_ipmmu, DISABLE_MMU);
 
+	__handle_registers(&ipmmumm, INVALIDATE_TLB);
 	__handle_registers(&ipmmumm, DISABLE_MMU_MM);
 	__handle_registers(&ipmmumm, CLEAR_MMU_STATUS_REGS);
 

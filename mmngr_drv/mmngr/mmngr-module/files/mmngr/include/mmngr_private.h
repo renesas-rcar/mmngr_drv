@@ -113,6 +113,7 @@ enum {
 	PRINT_MMU_PERF_MON,
 	BACKUP_MMU_REGS,
 	RESTORE_MMU_REGS,
+	INVALIDATE_TLB,
 };
 
 struct hw_register {
