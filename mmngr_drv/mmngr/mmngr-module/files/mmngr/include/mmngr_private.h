@@ -211,6 +211,16 @@ static int validate_memory_map(void);
 #define MM_OMXBUF_SIZE		(256 * 1024 * 1024)
 #endif /* MMNGR_SALVATORX */
 
+#ifdef MMNGR_EBISU
+#ifdef IPMMU_MMU_SUPPORT
+	#define MM_OMXBUF_ADDR	(mm_kernel_reserve_addr)
+#else
+	#define MM_OMXBUF_ADDR	(0x70000000UL)
+#endif /* IPMMU_MMU_SUPPORT */
+
+#define MM_OMXBUF_SIZE		(256 * 1024 * 1024)
+#endif /* MMNGR_EBISU */
+
 #define	MM_CO_ORDER		(12)
 
 #ifdef MMNGR_SSP_ENABLE
@@ -218,7 +228,11 @@ static int validate_memory_map(void);
 #define MM_SSPBUF_ADDR		(0x53000000UL)
 #define MM_SSPBUF_SIZE		(16 * 1024 * 1024)
 #endif
+
+#ifdef MMNGR_EBISU
+#error "R8A77990 (R-Car E3) EBISU does not support SSPBUF"
 #endif
+#endif /* MMNGR_SSP_ENABLE */
 
 #define MAX_LOSSY_ENTRIES		(16)
 #define MM_LOSSY_INFO_MAGIC		(0x12345678UL)
