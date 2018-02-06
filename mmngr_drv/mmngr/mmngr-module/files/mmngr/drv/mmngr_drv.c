@@ -1428,7 +1428,9 @@ static int ipmmu_probe(struct platform_device *pdev)
 	else
 		rcar_gen3_ipmmu = data->ipmmu_data;
 
-	if (soc_device_match(r8a7795) || soc_device_match(r8a77965))
+	if (soc_device_match(r8a7795) ||
+	    soc_device_match(r8a77965) ||
+	    soc_device_match(r8a77990))
 		is_mmu_tlb_disabled = true;
 	else
 		is_mmu_tlb_disabled = false;
