@@ -62,6 +62,7 @@
 #define __MMNGR_PUBLIC_CMN_H__
 
 #define MM_KERNELHEAP	0
+#define MM_KERNELHEAP_CACHED	5
 #define MM_CARVEOUT	1
 #define MM_CARVEOUT_SSP	3
 #define MM_CARVEOUT_LOSSY	4

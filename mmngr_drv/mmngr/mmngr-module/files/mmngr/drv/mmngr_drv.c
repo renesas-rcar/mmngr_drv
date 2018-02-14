@@ -862,7 +862,7 @@ static int close(struct inode *inode, struct file *file)
 	int		entry = 0;
 
 	if (p) {
-		if ((p->flag == MM_KERNELHEAP)
+		if ((p->flag == MM_KERNELHEAP || p->flag == MM_KERNELHEAP_CACHED)
 		&& (p->kernel_virt_addr != 0)) {
 			pr_warn("%s MMD kernelheap warning\n", __func__);
 			mm_dev = mm_drvdata->mm_dev;
@@ -906,6 +906,7 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	int		ercd;
 	int		ret;
 	struct MM_PARAM	*p = file->private_data;
+	struct MM_CACHE_PARAM *cachep;
 	struct device	*mm_dev;
 
 	mm_dev = mm_drvdata->mm_dev;
@@ -956,6 +957,14 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			ret = ercd;
 			goto exit;
 		}
+		break;
+	case MM_IOC_FLUSH:
+		cachep = (struct MM_CACHE_PARAM *) arg;
+		dma_sync_single_for_device(mm_dev, p->hard_addr + cachep->offset, cachep->len, DMA_FROM_DEVICE);
+		break;
+	case MM_IOC_INVAL:
+		cachep = (struct MM_CACHE_PARAM *) arg;
+		dma_sync_single_for_cpu(mm_dev, p->hard_addr + cachep->offset, cachep->len, DMA_TO_DEVICE);
 		break;
 	default:
 		pr_err("%s MMD CMD EFAULT\n", __func__);
@@ -1081,9 +1090,12 @@ static int mmap(struct file *filp, struct vm_area_struct *vma)
 	off += start;
 	vma->vm_pgoff = off >> PAGE_SHIFT;
 
-	vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
-
-	vma->vm_flags |= (VM_IO | VM_DONTEXPAND | VM_DONTDUMP);
+	if (p->flag != MM_KERNELHEAP_CACHED) {
+		vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
+		vma->vm_flags |= (VM_IO | VM_DONTEXPAND | VM_DONTDUMP);
+	} else {
+		vma->vm_flags |= (VM_DONTEXPAND | VM_DONTDUMP);
+	}
 
 	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
 			    vma->vm_end - vma->vm_start, vma->vm_page_prot))
