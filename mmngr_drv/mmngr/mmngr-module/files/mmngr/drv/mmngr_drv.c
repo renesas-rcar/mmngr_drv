@@ -1394,7 +1394,7 @@ static int handle_registers(struct rcar_ipmmu **ipmmu, unsigned int handling)
 {
 	struct rcar_ipmmu *working_ipmmu;
 	unsigned int i = 0;
-	unsigned int ret = 0;
+	int ret = 0;
 
 	while (ipmmu[i] != NULL) {
 		working_ipmmu = ipmmu[i];
