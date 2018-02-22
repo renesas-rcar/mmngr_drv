@@ -75,3 +75,11 @@ MMNGR v1.2
 	3. Use embedded function name in error messages.
 	4. Handle reserved bits in IMTTLBR properly.
 	5. Update IPMMU(MMU) initialize sequence.
+
+MMNGR v1.3
+	1. Add support for R-Car E3 with default and IPMMU(MMU) configuration.
+	2. Disable IPMMU TLB cache function in R-Car E3 due to hardware
+	   restriction.
+	3. Use const string for IPMMU and DT node name.
+	4. Add UL suffix for IPMMU base address.
+	5. Use signed integer type for return value in handle_registers.
