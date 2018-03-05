@@ -188,9 +188,11 @@ static int mm_ioc_share(int __user *in, struct MM_PARAM *out);
 static void mmngr_dev_set_cma_area(struct device *dev, struct cma *cma);
 static int init_lossy_info(void);
 static int find_lossy_entry(unsigned int flag, int *entry);
-static int _parse_reserved_mem_dt(const char *dt_path,
+static int _parse_reserved_mem_dt(struct device_node *np,
+				  const char *phandle_name,
+				  const char *match,
 				  u64 *addr, u64 *size);
-static int parse_reserved_mem_dt(void);
+static int parse_reserved_mem_dt(struct device_node *np);
 static int open(struct inode *inode, struct file *file);
 static int close(struct inode *inode, struct file *file);
 static long ioctl(struct file *file, unsigned int cmd, unsigned long arg);

@@ -1058,51 +1058,63 @@ static int validate_memory_map(void)
 	return ret;
 }
 
-static int _parse_reserved_mem_dt(const char *dt_path,
+static int _parse_reserved_mem_dt(struct device_node *np,
+				  const char *phandle_name,
+				  const char *match,
 				  u64 *addr, u64 *size)
 {
 	const __be32 *regaddr_p;
 	struct device_node *node;
+	int index;
+	int prop_size = 0;
+	int ret = 0;
+	*addr = 0;
+	*size = 0;
 
-	node = of_find_node_by_path(dt_path);
-	if (!node)
-		return -1;
-
-	regaddr_p = of_get_address(node, 0, size, NULL);
-	if (!regaddr_p) {
-		of_node_put(node);
-		return -1;
+	of_get_property(np, phandle_name, &prop_size);
+	for (index = 0; index < prop_size; index++) {
+		node = of_parse_phandle(np, phandle_name, index);
+		if (node) {
+			if (strstr(match, node->name)) {
+				regaddr_p = of_get_address(node, 0, size, NULL);
+				break;
+			}
+		}
 	}
 
-	*addr = of_translate_address(node, regaddr_p);
+	if (regaddr_p && (index < prop_size))
+		*addr = of_translate_address(node, regaddr_p);
+	else
+		ret = -1;
 
 	of_node_put(node);
-
-	return 0;
+	return ret;
 }
 
-static int parse_reserved_mem_dt(void)
+static int parse_reserved_mem_dt(struct device_node *np)
 {
 	int ret = 0;
 
-	ret = _parse_reserved_mem_dt(
-			"/reserved-memory/linux,multimedia",
-			&mm_kernel_reserve_addr, &mm_kernel_reserve_size);
+	/* Parse reserved memory for multimedia */
+	ret = _parse_reserved_mem_dt(np, "memory-region",
+				     "linux,multimedia",
+				     &mm_kernel_reserve_addr,
+				     &mm_kernel_reserve_size);
 	if (ret) {
 		pr_warn("Failed to parse MMP reserved area" \
 			 "(linux,multimedia) from DT\n");
 		return ret;
 	}
-
-	ret = _parse_reserved_mem_dt(
-			"/reserved-memory/linux,lossy_decompress",
-			&mm_lossybuf_addr, &mm_lossybuf_size);
+	/* Parse reserved memory for lossy compression feature */
+	ret = _parse_reserved_mem_dt(np, "memory-region",
+				     "linux,lossy_decompress",
+				     &mm_lossybuf_addr,
+				     &mm_lossybuf_size);
 	if (ret) {
 		pr_warn("Failed to parse Lossy reserved area" \
 			"(linux,lossy_decompress) from DT\n");
 		ret = 0; /* Let MMNGR support other features */
 	}
-
 	return ret;
 }
 
@@ -1560,9 +1572,10 @@ static int mm_probe(struct platform_device *pdev)
 	phys_addr_t		phy_addr;
 	void			*pkernel_virt_addr;
 	struct device		*dev = &pdev->dev;
+	struct device_node	*np = dev->of_node;
 	unsigned long		mm_omxbuf_size;
 
-	ret = parse_reserved_mem_dt();
+	ret = parse_reserved_mem_dt(np);
 	if (ret) {
 		pr_err("%s MMD ERROR\n", __func__);
 		return -1;
