@@ -136,6 +136,12 @@ static phys_addr_t e3_mmu_table[4] = {
 };
 
 /* Attribute structs describing Salvator-X revisions */
+/* H3 */
+static const struct soc_device_attribute r8a7795[]  = {
+	{ .soc_id = "r8a7795" },
+	{}
+};
+
 /* H3 WS1.0 and WS1.1 */
 static const struct soc_device_attribute r8a7795es1[]  = {
 	{ .soc_id = "r8a7795", .revision = "ES1.*" },
@@ -143,7 +149,7 @@ static const struct soc_device_attribute r8a7795es1[]  = {
 };
 
 /* H3 ES2.0 */
-static const struct soc_device_attribute r8a7795[]  = {
+static const struct soc_device_attribute r8a7795es2[]  = {
 	{ .soc_id = "r8a7795", .revision = "ES2.0" },
 	{}
 };
@@ -160,9 +166,21 @@ static const struct soc_device_attribute r8a77965[]  = {
 	{}
 };
 
+/* M3N ES1.x*/
+static const struct soc_device_attribute r8a77965es1[]  = {
+	{ .soc_id = "r8a77965", .revision = "ES1.*" },
+	{}
+};
+
 /* E3 */
 static const struct soc_device_attribute r8a77990[]  = {
 	{ .soc_id = "r8a77990" },
+	{}
+};
+
+/* E3 ES1.0*/
+static const struct soc_device_attribute r8a77990es1[]  = {
+	{ .soc_id = "r8a77990", .revision = "ES1.0" },
 	{}
 };
 
@@ -1442,9 +1460,9 @@ static int ipmmu_probe(struct platform_device *pdev)
 	else
 		rcar_gen3_ipmmu = data->ipmmu_data;
 
-	if (soc_device_match(r8a7795) ||
-	    soc_device_match(r8a77965) ||
-	    soc_device_match(r8a77990))
+	if (soc_device_match(r8a7795es2) ||
+	    soc_device_match(r8a77965es1) ||
+	    soc_device_match(r8a77990es1))
 		is_mmu_tlb_disabled = true;
 	else
 		is_mmu_tlb_disabled = false;
