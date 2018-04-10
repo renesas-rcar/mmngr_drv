@@ -85,3 +85,7 @@ MMNGR v1.3
 	5. Use signed integer type for return value in handle_registers.
 	6. Update IPMMU(MMU) deinitialize sequence.
 	7. Change the way of parsing reserved memory regions in DT.
+
+MMNGR v1.4
+	1. Disable IPMMU TLB cache function in selected SoC revision
+	2. Update CMA memory mapping for E3
