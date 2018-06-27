@@ -1081,8 +1081,8 @@ static int _parse_reserved_mem_dt(struct device_node *np,
 				  const char *match,
 				  u64 *addr, u64 *size)
 {
-	const __be32 *regaddr_p;
-	struct device_node *node;
+	const __be32 *regaddr_p = NULL;
+	struct device_node *node = NULL;
 	int index;
 	int prop_size = 0;
 	int ret = 0;
