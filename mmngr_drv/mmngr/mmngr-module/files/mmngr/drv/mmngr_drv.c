@@ -1705,6 +1705,11 @@ static int mm_probe(struct platform_device *pdev)
 		return -1;
 
 #ifdef IPMMU_MMU_SUPPORT
+	if (!rcar_gen3_ipmmu) {
+		pr_err("%s MMD ERROR\n", __func__);
+		return -1;
+	}
+
 	ipmmu_mmu_startup();
 	ipmmu_mmu_initialize();
 #endif
