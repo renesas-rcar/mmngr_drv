@@ -87,11 +87,15 @@ static struct MM_DRVDATA	*mm_drvdata;
 static struct cma		*mm_cma_area;
 static u64			mm_kernel_reserve_addr;
 static u64			mm_kernel_reserve_size;
+static u64			mm_omxbuf_addr;
+static u64			mm_omxbuf_size;
 static u64			mm_lossybuf_addr;
 static u64			mm_lossybuf_size;
 static bool			have_lossy_entries;
 #ifdef MMNGR_SSP_ENABLE
 static bool			is_sspbuf_valid;
+static u64			mm_sspbuf_addr;
+static u64			mm_sspbuf_size;
 #endif
 #ifdef IPMMU_MMU_SUPPORT
 static bool			ipmmu_common_init_done;
@@ -1110,32 +1114,32 @@ static int validate_memory_map(void)
 {
 	int ret = 0;
 #ifdef MMNGR_SSP_ENABLE
-	unsigned long buf_size;
+	u64 buf_size;
 	const char *buf_name;
 #endif
 
-	if (mm_kernel_reserve_size < MM_OMXBUF_SIZE) {
-		pr_warn("The size (0x%x) of OMXBUF is over "\
+	if (mm_kernel_reserve_size < mm_omxbuf_size) {
+		pr_warn("The size (0x%llx) of OMXBUF is over "\
 			"the kernel reserved size (0x%llx) for Multimedia.\n",
-			MM_OMXBUF_SIZE, mm_kernel_reserve_size);
+			mm_omxbuf_size, mm_kernel_reserve_size);
 		pr_warn("Failed to initialize MMNGR.\n");
 		ret = -1;
 	}
 
 #ifdef MMNGR_SSP_ENABLE
-	buf_size = MM_OMXBUF_SIZE + MM_SSPBUF_SIZE;
+	buf_size = mm_omxbuf_size + mm_sspbuf_size;
 	buf_name = "OMXBUF and SSPBUF";
 
 	if (mm_kernel_reserve_size >= buf_size) {
-		if ((MM_SSPBUF_ADDR >= mm_kernel_reserve_addr) &&
-		    (MM_SSPBUF_ADDR <= (mm_kernel_reserve_addr
+		if ((mm_sspbuf_addr >= mm_kernel_reserve_addr) &&
+		    (mm_sspbuf_addr <= (mm_kernel_reserve_addr
 					+ mm_kernel_reserve_size
-					- MM_SSPBUF_SIZE))) {
+					- mm_sspbuf_size))) {
 			is_sspbuf_valid = true;
 		} else {
-			pr_warn("The SSPBUF (0x%lx - 0x%lx) is out of range of"\
+			pr_warn("The SSPBUF (0x%llx - 0x%llx) is out of range of"\
 				"the kernel reserved size (0x%llx - 0x%llx) for Multimedia.\n",
-				MM_SSPBUF_ADDR, MM_SSPBUF_ADDR + MM_SSPBUF_SIZE,
+				mm_sspbuf_addr, mm_sspbuf_addr + mm_sspbuf_size,
 				mm_kernel_reserve_addr,
 				mm_kernel_reserve_addr
 				+ mm_kernel_reserve_size);
@@ -1144,7 +1148,7 @@ static int validate_memory_map(void)
 			is_sspbuf_valid = false;
 		}
 	} else {
-		pr_warn("The total size (0x%lx) of %s is over "\
+		pr_warn("The total size (0x%llx) of %s is over "\
 			"the kernel reserved size (0x%llx) for Multimedia.\n",
 			buf_size, buf_name, mm_kernel_reserve_size);
 		pr_warn("Not able to allocate buffer in SSPBUF.\n");
@@ -1212,6 +1216,30 @@ static int parse_reserved_mem_dt(struct device_node *np)
 			"(linux,lossy_decompress) from DT\n");
 		ret = 0; /* Let MMNGR support other features */
 	}
+	/* Parse reserved memory for OMX, range within reserved memory for multimedia */
+	ret = _parse_reserved_mem_dt(np, "memory-region", "linux,omxbuf",
+				     &mm_omxbuf_addr, &mm_omxbuf_size);
+	if (ret < 0) {
+#ifndef MMNGR_SSP_ENABLE
+		mm_omxbuf_addr = mm_kernel_reserve_addr;
+		mm_omxbuf_size = mm_kernel_reserve_size;
+#else
+		mm_omxbuf_addr = MM_OMXBUF_ADDR;
+		mm_omxbuf_size = MM_OMXBUF_SIZE;
+#endif
+		ret = 0;
+	}
+#ifdef MMNGR_SSP_ENABLE
+	/* Parse reserved memory for SSP, range within reserved memory for multimedia */
+	ret = _parse_reserved_mem_dt(np, "memory-region", "linux,sspbuf",
+				     &mm_sspbuf_addr, &mm_sspbuf_size);
+	if (ret < 0) {
+		mm_sspbuf_addr = MM_SSPBUF_ADDR;
+		mm_sspbuf_size = MM_SSPBUF_SIZE;
+		ret = 0;
+	}
+#endif
+
 	return ret;
 }
 
@@ -1676,7 +1704,7 @@ static int mm_probe(struct platform_device *pdev)
 	void			*pkernel_virt_addr;
 	struct device		*dev = &pdev->dev;
 	struct device_node	*np = dev->of_node;
-	unsigned long		mm_omxbuf_size;
+	unsigned long		mm_omxbuf_size_probe;
 
 	ret = parse_reserved_mem_dt(np);
 	if (ret) {
@@ -1689,13 +1717,12 @@ static int mm_probe(struct platform_device *pdev)
 		pr_err("%s MMD ERROR\n", __func__);
 		return -1;
 	}
-
 #ifndef MMNGR_SSP_ENABLE
-	mm_omxbuf_size = mm_kernel_reserve_size;
+	mm_omxbuf_size_probe = mm_kernel_reserve_size;
 #else
-	mm_omxbuf_size = mm_kernel_reserve_size - MM_SSPBUF_SIZE;
+	mm_omxbuf_size_probe = mm_kernel_reserve_size - mm_sspbuf_size;
 #endif
-	ret = alloc_bm(&bm, MM_OMXBUF_ADDR, mm_omxbuf_size, MM_CO_ORDER);
+	ret = alloc_bm(&bm, mm_omxbuf_addr, mm_omxbuf_size_probe, MM_CO_ORDER);
 	if (ret) {
 		pr_err("%s MMD ERROR\n", __func__);
 		return -1;
@@ -1703,7 +1730,7 @@ static int mm_probe(struct platform_device *pdev)
 
 #ifdef MMNGR_SSP_ENABLE
 	if (is_sspbuf_valid) {
-		ret = alloc_bm(&bm_ssp, MM_SSPBUF_ADDR, MM_SSPBUF_SIZE,
+		ret = alloc_bm(&bm_ssp, mm_sspbuf_addr, mm_sspbuf_size,
 				MM_CO_ORDER);
 		if (ret) {
 			pr_err("%s MMD ERROR\n", __func__);
