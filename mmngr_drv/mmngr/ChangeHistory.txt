@@ -93,3 +93,5 @@ MMNGR v1.4
 MMNGR v1.5
 	1. Fix static analysis warnings.
 
+MMNGR v1.6
+	1. Remove uncessary check when parsing reserved memory regions in DT
