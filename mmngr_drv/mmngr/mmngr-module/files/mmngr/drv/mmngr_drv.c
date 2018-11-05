@@ -515,6 +515,11 @@ static struct rcar_ipmmu *r8a77990_ipmmu[] = {
 	NULL, /* End of list */
 };
 
+static struct rcar_ipmmu *r8a77990_disable_mmu_tlb[] = {
+	&r8a77990_ipmmuvc0,
+	NULL, /* End of list */
+};
+
 #endif /* IPMMU_MMU_SUPPORT */
 
 static int mm_ioc_alloc(struct device *mm_dev,
@@ -1782,8 +1787,13 @@ static int ipmmu_mmu_initialize(void)
 	__handle_registers(&ipmmumm, SET_TRANSLATION_TABLE);
 	__handle_registers(&ipmmumm, ENABLE_MMU_MM);
 
-	if (is_mmu_tlb_disabled)
-		handle_registers(rcar_gen3_ipmmu, DISABLE_MMU_TLB);
+	if (is_mmu_tlb_disabled) {
+		if (soc_device_match(r8a77990es1))
+			handle_registers(r8a77990_disable_mmu_tlb,
+					 DISABLE_MMU_TLB);
+		else
+			handle_registers(rcar_gen3_ipmmu, DISABLE_MMU_TLB);
+	}
 	handle_registers(rcar_gen3_ipmmu, ENABLE_MMU);
 	handle_registers(rcar_gen3_ipmmu, ENABLE_UTLB);
 	__handle_registers(&ipmmumm, CLEAR_MMU_STATUS_REGS);
