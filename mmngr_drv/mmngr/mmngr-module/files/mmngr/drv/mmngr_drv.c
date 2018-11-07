@@ -178,9 +178,9 @@ static const struct soc_device_attribute r8a77990[]  = {
 	{}
 };
 
-/* E3 ES1.0*/
+/* E3 ES1.x */
 static const struct soc_device_attribute r8a77990es1[]  = {
-	{ .soc_id = "r8a77990", .revision = "ES1.0" },
+	{ .soc_id = "r8a77990", .revision = "ES1.*" },
 	{}
 };
 
