@@ -1100,7 +1100,7 @@ static int _parse_reserved_mem_dt(struct device_node *np,
 		}
 	}
 
-	if (regaddr_p)
+	if (regaddr_p && (index < prop_size))
 		*addr = of_translate_address(node, regaddr_p);
 	else
 		ret = -1;
