@@ -101,6 +101,13 @@ static int close(struct inode *inode, struct file *file)
 			dma_buf_detach(priv->dma_buf, priv->attach);
 		}
 
+		if (!priv->buf) {
+			if (priv->dma_buf) {
+				pr_err("%s dma_buf\n", __func__);
+				dma_buf_put(priv->dma_buf);
+			}
+		}
+
 		kfree(priv);
 		file->private_data = NULL;
 	}
