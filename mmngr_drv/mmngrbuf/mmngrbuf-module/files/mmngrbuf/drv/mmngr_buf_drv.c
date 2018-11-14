@@ -412,7 +412,7 @@ static int mm_ioc_import_start(int __user *arg, struct MM_BUF_PRIVATE *priv)
 	priv->attach = dma_buf_attach(priv->dma_buf,
 				mm_buf_drvdata->mm_buf_dev);
 	if (IS_ERR(priv->attach))
-		goto exit;
+		goto err_attach;
 
 	priv->sgt = dma_buf_map_attachment(priv->attach, DMA_BIDIRECTIONAL);
 	if (IS_ERR_OR_NULL(priv->sgt))
@@ -433,6 +433,9 @@ err_unmap:
 err_detach:
 	dma_buf_detach(priv->dma_buf, priv->attach);
 	priv->attach = NULL;
+err_attach:
+	dma_buf_put(priv->dma_buf);
+	priv->dma_buf = NULL;
 exit:
 	return -1;
 }
@@ -444,6 +447,7 @@ static int mm_ioc_import_end(struct MM_BUF_PRIVATE *priv)
 	dma_buf_put(priv->dma_buf);
 	priv->sgt = NULL;
 	priv->attach = NULL;
+	priv->dma_buf = NULL;
 
 	return 0;
 }
