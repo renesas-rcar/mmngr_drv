@@ -26,3 +26,7 @@ MMNGRBUF v1.0
 MMNGRBUF v1.1
 	1. Fix build error due to dma_ops_buf change in kernel version 4.14.
 	2. Use embedded function name in error messages.
+
+MMNGRBUF v1.2
+	1. Improve error handling in close() function.
+	2. Improve error handling for import phases.
