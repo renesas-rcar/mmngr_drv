@@ -1659,7 +1659,7 @@ static int mm_probe(struct platform_device *pdev)
 					GFP_KERNEL);
 	if (pkernel_virt_addr == NULL) {
 		pr_err("MMD mm_init ERROR\n");
-		return -1;
+		goto err_alloc;
 	}
 
 	p->reserve_size = mm_kernel_reserve_size;
@@ -1681,6 +1681,10 @@ static int mm_probe(struct platform_device *pdev)
 	spin_lock_init(&lock);
 
 	return 0;
+
+err_alloc:
+	misc_deregister(&misc);
+	return -1;
 }
 
 static int mm_remove(struct platform_device *pdev)
