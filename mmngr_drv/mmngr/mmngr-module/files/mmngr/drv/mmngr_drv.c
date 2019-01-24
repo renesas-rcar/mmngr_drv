@@ -1,7 +1,7 @@
 /*************************************************************************/ /*
  MMNGR
 
- Copyright (C) 2015-2018 Renesas Electronics Corporation
+ Copyright (C) 2015-2019 Renesas Electronics Corporation
 
  License        Dual MIT/GPLv2
 
@@ -157,6 +157,12 @@ static const struct soc_device_attribute r8a7795es2[]  = {
 /* M3 */
 static const struct soc_device_attribute r8a7796[]  = {
 	{ .soc_id = "r8a7796" },
+	{}
+};
+
+/* M3 Ver.1.x */
+static const struct soc_device_attribute r8a7796es1[]  = {
+	{ .soc_id = "r8a7796", .revision = "ES1.*" },
 	{}
 };
 
@@ -388,7 +394,7 @@ static struct rcar_ipmmu r8a7796_ipmmuvi = {
 };
 
 static struct ip_master r8a7796_ipmmuvc0_masters[] = {
-	{"FCP-CI",  4},
+	{"FCP-CS",  1},
 	{"FCP-CS",  8},
 	{"FCP-F",  16},
 	{"FCP-VI", 19},
@@ -424,6 +430,60 @@ static struct rcar_ipmmu *r8a7796_ipmmu[] = {
 #endif
 	&r8a7796_ipmmuvi,
 	&r8a7796_ipmmuvc0,
+	NULL, /* End of list */
+};
+
+/* R-Car M3 (R8A7796 Ver.1.x) */
+static struct ip_master r8a7796es1_ipmmuvi_masters[] = {
+	{"FCP-VB",  5},
+};
+
+static struct rcar_ipmmu r8a7796es1_ipmmuvi = {
+	.ipmmu_name	= "IPMMUVI",
+	.base_addr	= IPMMUVI_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7796es1_ipmmuvi_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7796es1_ipmmuvi_masters,
+};
+
+static struct ip_master r8a7796es1_ipmmuvc0_masters[] = {
+	{"FCP-CI",  4},
+	{"FCP-CS",  8},
+	{"FCP-F",  16},
+	{"FCP-VI", 19},
+};
+
+static struct rcar_ipmmu r8a7796es1_ipmmuvc0 = {
+	.ipmmu_name	= "IPMMUVC0",
+	.base_addr	= IPMMUVC0_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7796es1_ipmmuvc0_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7796es1_ipmmuvc0_masters,
+};
+
+#ifdef MMNGR_SSP_ENABLE
+static struct ip_master r8a7796es1_ipmmuds1_masters[] = {
+	{"SSP1",	36},
+};
+
+static struct rcar_ipmmu r8a7796es1_ipmmuds1 = {
+	.ipmmu_name	= "IPMMUDS1",
+	.base_addr	= IPMMUDS1_BASE,
+	.reg_count	= ARRAY_SIZE(ipmmu_ip_regs),
+	.masters_count	= ARRAY_SIZE(r8a7796es1_ipmmuds1_masters),
+	.ipmmu_reg	= ipmmu_ip_regs,
+	.ip_masters	= r8a7796es1_ipmmuds1_masters,
+};
+#endif
+
+static struct rcar_ipmmu *r8a7796es1_ipmmu[] = {
+#ifdef MMNGR_SSP_ENABLE
+	&r8a7796es1_ipmmuds1,
+#endif
+	&r8a7796es1_ipmmuvi,
+	&r8a7796es1_ipmmuvc0,
 	NULL, /* End of list */
 };
 
@@ -1462,6 +1522,8 @@ static int ipmmu_probe(struct platform_device *pdev)
 
 	if (soc_device_match(r8a7795es1))
 		rcar_gen3_ipmmu = r8a7795es1_ipmmu;
+	if (soc_device_match(r8a7796es1))
+		rcar_gen3_ipmmu = r8a7796es1_ipmmu;
 	else
 		rcar_gen3_ipmmu = data->ipmmu_data;
 
