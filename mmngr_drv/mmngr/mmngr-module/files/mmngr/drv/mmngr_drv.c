@@ -1186,7 +1186,7 @@ static int _parse_reserved_mem_dt(struct device_node *np,
 	if (regaddr_p)
 		*addr = of_translate_address(node, regaddr_p);
 	else
-		ret = -1;
+		ret = -EINVAL;
 
 	of_node_put(node);
 	return ret;
