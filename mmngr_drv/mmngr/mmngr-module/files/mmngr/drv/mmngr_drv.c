@@ -1517,7 +1517,7 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 
 	} else { /* Invalid */
 		pr_err("%s: Invalid parameters\n", __func__);
-		ret = -1;
+		ret = -EINVAL;
 	}
 
 	return ret;
