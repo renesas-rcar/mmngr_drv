@@ -1560,7 +1560,7 @@ static int ipmmu_probe(struct platform_device *pdev)
 
 	data = of_device_get_match_data(dev);
 	if (!data)
-		return -1;
+		return -EINVAL;
 
 	if (soc_device_match(r8a7795es1))
 		rcar_gen3_ipmmu = r8a7795es1_ipmmu;
