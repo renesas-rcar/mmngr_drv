@@ -668,7 +668,7 @@ static int alloc_bm(struct BM *pb,
 	top_phy_addr, top_phy_addr + size - 1);
 
 	if (pb == NULL)
-		return -1;
+		return -EINVAL;
 
 	nbits = (size + ((1UL << order) - 1)) >> order;
 	nbytes = (nbits + BITS_PER_BYTE - 1) / BITS_PER_BYTE;
