@@ -674,7 +674,7 @@ static int alloc_bm(struct BM *pb,
 	nbytes = (nbits + BITS_PER_BYTE - 1) / BITS_PER_BYTE;
 	pb->bits = kzalloc(nbytes, GFP_KERNEL);
 	if (pb->bits == NULL)
-		return -1;
+		return -ENOMEM;
 	pb->order = order;
 	pb->top_phy_addr = top_phy_addr;
 	pb->end_bit = nbits;
@@ -851,7 +851,7 @@ static int open(struct inode *inode, struct file *file)
 
 	p = kzalloc(sizeof(struct MM_PARAM), GFP_KERNEL);
 	if (!p)
-		return -1;
+		return -ENOMEM;
 
 	file->private_data = p;
 
@@ -1747,7 +1747,7 @@ static int mm_probe(struct platform_device *pdev)
 
 	p = kzalloc(sizeof(struct MM_DRVDATA), GFP_KERNEL);
 	if (p == NULL)
-		return -1;
+		return -ENOMEM;
 
 	dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32));
 
