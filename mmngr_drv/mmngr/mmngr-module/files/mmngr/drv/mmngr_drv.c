@@ -1258,7 +1258,7 @@ static int init_lossy_info(void)
 	mem = ioremap(MM_LOSSY_SHARED_MEM_ADDR,
 		      MM_LOSSY_SHARED_MEM_SIZE);
 	if (mem == NULL)
-		return -1;
+		return -ENOMEM;
 
 	p = (struct LOSSY_INFO __force *)mem;
 
@@ -1333,7 +1333,7 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 		/* IOREMAP registers in an IPMMU */
 		ipmmu->virt_addr = ioremap(base_addr, REG_SIZE);
 		if (ipmmu->virt_addr == NULL)
-			ret = -1;
+			ret = -ENOMEM;
 
 		pr_debug("\n%s: DO_IOREMAP: %s, virt_addr 0x%lx\n",
 			 __func__, ipmmu->ipmmu_name,
