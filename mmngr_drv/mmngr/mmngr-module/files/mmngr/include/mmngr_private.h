@@ -1,7 +1,7 @@
 /*************************************************************************/ /*
  MMNGR
 
- Copyright (C) 2015-2018 Renesas Electronics Corporation
+ Copyright (C) 2015-2019 Renesas Electronics Corporation
 
  License        Dual MIT/GPLv2
 
@@ -263,9 +263,6 @@ static int validate_memory_map(void);
 #endif
 
 #define EAE			BIT(31)
-#define SH0			(BIT(13) | BIT(12))
-#define ORGN0_BIT10		BIT(10)
-#define IRGN0_BIT8		BIT(8)
 #define SL_BIT7			BIT(7)
 #define TSZ0_32BIT		0 /* 2^(32-0) */
 #define MMUEN			BIT(0)
@@ -296,8 +293,7 @@ static int validate_memory_map(void);
 #define REG_SIZE		IMUCTRn_OFFSET(MAX_UTLB)
 #define IMCTR_VAL		(MMUEN | FLUSH)
 #define IMCTR_MM_VAL		(IMCTR_VAL)
-#define IMTTBCR_VAL		(EAE | SH0 | ORGN0_BIT10 | IRGN0_BIT8 | \
-				 SL_BIT7 | TSZ0_32BIT)
+#define IMTTBCR_VAL		(EAE | SL_BIT7 | TSZ0_32BIT)
 #define IMMAIR0_VAL		(0x5500)
 #define IMUCTR_VAL		((CUR_TTSEL << 4) | MMUEN | FLUSH)
 #define IMTTLBR_VAL		(__pa(ipmmu_mmu_pgd) & IMTTLBR_MASK)
