@@ -101,3 +101,6 @@ MMNGR v1.6
 	4. Add error handling for mm_probe() function.
 MMNGR v1.7
 	1. Add IPMMU(MMU) support for R-Car M3 Ver.3.0
+
+MMNGR v1.8
+	1.Remove cache snoop transaction for page table walk request
