@@ -102,7 +102,7 @@ static int close(struct inode *inode, struct file *file)
 		}
 
 		if (!priv->buf) {
-			if (priv->dma_buf) {
+			if (!IS_ERR_OR_NULL(priv->dma_buf)) {
 				pr_err("%s dma_buf\n", __func__);
 				dma_buf_put(priv->dma_buf);
 			}
