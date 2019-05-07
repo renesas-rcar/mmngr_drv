@@ -1,7 +1,7 @@
 /*************************************************************************/ /*
  MMNGR
 
- Copyright (C) 2015-2016 Renesas Electronics Corporation
+ Copyright (C) 2015-2019 Renesas Electronics Corporation
 
  License        Dual MIT/GPLv2
 
@@ -102,7 +102,7 @@ static int close(struct inode *inode, struct file *file)
 		}
 
 		if (!priv->buf) {
-			if (priv->dma_buf) {
+			if (!IS_ERR_OR_NULL(priv->dma_buf)) {
 				pr_err("%s dma_buf\n", __func__);
 				dma_buf_put(priv->dma_buf);
 			}
