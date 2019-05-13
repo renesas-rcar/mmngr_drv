@@ -30,3 +30,6 @@ MMNGRBUF v1.1
 MMNGRBUF v1.2
 	1. Improve error handling in close() function.
 	2. Improve error handling for import phases.
+
+MMNGRBUF v1.3
+	1. Fix dmabuf refcount handling on mm_ioc_import_start() failure
