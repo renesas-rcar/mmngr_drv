@@ -864,29 +864,29 @@ static int close(struct inode *inode, struct file *file)
 	if (p) {
 		if ((p->flag == MM_KERNELHEAP)
 		&& (p->kernel_virt_addr != 0)) {
-			pr_err("%s MMD kernelheap ERROR\n", __func__);
+			pr_warn("%s MMD kernelheap warning\n", __func__);
 			mm_dev = mm_drvdata->mm_dev;
 			dma_free_coherent(mm_dev, p->size,
 					(void *)p->kernel_virt_addr,
 					(dma_addr_t)p->phy_addr);
 		} else if ((p->flag == MM_CARVEOUT)
 		&& (p->phy_addr != 0)) {
-			pr_err("%s MMD carveout ERROR\n", __func__);
+			pr_warn("%s MMD carveout warning\n", __func__);
 			pb = &bm;
 			mm_ioc_free_co(pb, p);
 		} else if ((p->flag == MM_CARVEOUT_SSP)
 		&& (p->phy_addr != 0)) {
 #ifdef MMNGR_SSP_ENABLE
 			if (is_sspbuf_valid) {
-				pr_err("%s MMD carveout SSP ERROR\n",
-				       __func__);
+				pr_warn("%s MMD carveout SSP warning\n",
+					__func__);
 				pb = &bm_ssp;
 				mm_ioc_free_co(pb, p);
 			}
 #endif
 		} else if (((p->flag & 0xF) == MM_CARVEOUT_LOSSY)
 		&& (p->phy_addr != 0)) {
-			pr_err("%s MMD carveout LOSSY ERROR\n", __func__);
+			pr_warn("%s MMD carveout LOSSY warning\n", __func__);
 			find_lossy_entry(p->flag, &entry);
 			if (entry >= 0) {
 				pb = lossy_entries[entry].bm_lossy;
