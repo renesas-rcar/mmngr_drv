@@ -92,19 +92,19 @@ static int close(struct inode *inode, struct file *file)
 
 	if (priv) {
 		if (priv->sgt) {
-			pr_err("%s unmap\n", __func__);
+			pr_warn("%s unmap\n", __func__);
 			dma_buf_unmap_attachment(priv->attach,
 				priv->sgt, DMA_BIDIRECTIONAL);
 		}
 
 		if (priv->attach) {
-			pr_err("%s detach\n", __func__);
+			pr_warn("%s detach\n", __func__);
 			dma_buf_detach(priv->dma_buf, priv->attach);
 		}
 
 		if (!priv->buf) {
 			if (!IS_ERR_OR_NULL(priv->dma_buf)) {
-				pr_err("%s dma_buf\n", __func__);
+				pr_warn("%s dma_buf\n", __func__);
 				dma_buf_put(priv->dma_buf);
 			}
 		}
