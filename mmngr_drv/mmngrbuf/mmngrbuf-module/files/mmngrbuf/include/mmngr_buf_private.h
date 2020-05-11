@@ -104,7 +104,7 @@ static long compat_ioctl(struct file *file, unsigned int cmd,
 static int open(struct inode *inode, struct file *file);
 static int close(struct inode *inode, struct file *file);
 static long ioctl(struct file *file, unsigned int cmd, unsigned long arg);
-static int dmabuf_attach(struct dma_buf *buf, struct device *dev,
+static int dmabuf_attach(struct dma_buf *buf,
 			struct dma_buf_attachment *attach);
 static void dmabuf_detach(struct dma_buf *buf,
 			struct dma_buf_attachment *attach);
