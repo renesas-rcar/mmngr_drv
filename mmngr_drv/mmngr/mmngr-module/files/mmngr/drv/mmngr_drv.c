@@ -991,27 +991,27 @@ static long compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case COMPAT_MM_IOC_ALLOC:
 		cmd = MM_IOC_ALLOC;
-		if (!access_ok(VERIFY_WRITE, tmp, sizeof(*tmp))
+		if (!access_ok(tmp, sizeof(*tmp))
 		    || __put_user(tmp32.size, &tmp->size)
 		    || __put_user(tmp32.flag, &tmp->flag))
 			return -EFAULT;
 		break;
 	case COMPAT_MM_IOC_SET:
 		cmd = MM_IOC_SET;
-		if (!access_ok(VERIFY_WRITE, tmp, sizeof(*tmp))
+		if (!access_ok(tmp, sizeof(*tmp))
 		    || __put_user(tmp32.user_virt_addr, &tmp->user_virt_addr))
 			return -EFAULT;
 		break;
 	case COMPAT_MM_IOC_ALLOC_CO:
 		cmd = MM_IOC_ALLOC_CO;
-		if (!access_ok(VERIFY_WRITE, tmp, sizeof(*tmp))
+		if (!access_ok(tmp, sizeof(*tmp))
 		    || __put_user(tmp32.size, &tmp->size)
 		    || __put_user(tmp32.flag, &tmp->flag))
 			return -EFAULT;
 		break;
 	case COMPAT_MM_IOC_SHARE:
 		cmd = MM_IOC_SHARE;
-		if (!access_ok(VERIFY_WRITE, tmp, sizeof(*tmp))
+		if (!access_ok(tmp, sizeof(*tmp))
 		    || __put_user(tmp32.size, &tmp->size)
 		    || __put_user(tmp32.phy_addr, &tmp->phy_addr))
 			return -EFAULT;
