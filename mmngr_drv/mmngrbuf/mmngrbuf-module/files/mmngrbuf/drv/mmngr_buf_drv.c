@@ -174,7 +174,7 @@ static long compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		return ret;
 	}
 
-	if (!access_ok(VERIFY_WRITE, tmp, sizeof(*tmp))
+	if (!access_ok(tmp, sizeof(*tmp))
 	    || __put_user(tmp32.size, &tmp->size)
 	    || __put_user(tmp32.hard_addr, &tmp->hard_addr)
 	    || __put_user(tmp32.buf, &tmp->buf))
