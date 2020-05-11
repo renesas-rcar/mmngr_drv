@@ -229,8 +229,8 @@ static struct miscdevice misc = {
 	.fops		= &fops,
 };
 
-static int dmabuf_attach(struct dma_buf *buf, struct device *dev,
-	struct dma_buf_attachment *attach)
+static int dmabuf_attach(struct dma_buf *buf,
+			 struct dma_buf_attachment *attach)
 {
 	return 0;
 }
