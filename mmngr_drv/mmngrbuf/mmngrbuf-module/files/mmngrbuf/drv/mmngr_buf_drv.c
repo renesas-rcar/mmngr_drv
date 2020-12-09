@@ -272,7 +272,9 @@ static void dmabuf_unmap_dma_buf(struct dma_buf_attachment *attach,
 
 static void dmabuf_release(struct dma_buf *buf)
 {
+	struct MM_BUF_PRIVATE *priv = buf->priv;
 
+	kfree(priv);
 }
 
 static int dmabuf_begin_cpu_access(struct dma_buf *buf,
@@ -338,13 +340,19 @@ static const struct dma_buf_ops dmabuf_ops = {
 	.vunmap = dmabuf_vunmap,
 };
 
-static int mm_ioc_export_start(int __user *arg, struct MM_BUF_PRIVATE *priv)
+static int mm_ioc_export_start(int __user *arg, struct MM_BUF_PRIVATE *fpriv)
 {
 	struct MM_BUF_PARAM	tmp;
+	struct MM_BUF_PRIVATE	*priv = NULL;
+	struct dma_buf		*dma_buf;
 
 	DEFINE_DMA_BUF_EXPORT_INFO(exp_info);
 
 	if (copy_from_user(&tmp, arg, sizeof(struct MM_BUF_PARAM)))
+		goto exit;
+
+	priv = kzalloc(sizeof(struct MM_BUF_PRIVATE), GFP_KERNEL);
+	if (!priv)
 		goto exit;
 
 	exp_info.priv = priv;
@@ -352,22 +360,30 @@ static int mm_ioc_export_start(int __user *arg, struct MM_BUF_PRIVATE *priv)
 	exp_info.size = tmp.size;
 	exp_info.flags = O_RDWR;
 
-	priv->dma_buf = dma_buf_export(&exp_info);
-	if (IS_ERR(priv->dma_buf))
-		goto exit;
+	dma_buf = dma_buf_export(&exp_info);
+	if (IS_ERR(dma_buf))
+		goto err_dma_buf_export;
 
-	tmp.buf = dma_buf_fd(priv->dma_buf, 0);
+	priv->dma_buf = dma_buf;
+
+	tmp.buf = dma_buf_fd(dma_buf, 0);
 	if (tmp.buf < 0)
-		goto exit;
+		goto err_dma_buf_fd;
 
 	priv->size = tmp.size;
 	priv->hard_addr = tmp.hard_addr;
 	priv->buf = tmp.buf;
+	fpriv->buf = tmp.buf;
 
 	if (copy_to_user(arg, &tmp, sizeof(struct MM_BUF_PARAM)))
-		goto exit;
+		goto err_dma_buf_fd;
 
 	return 0;
+
+err_dma_buf_fd:
+	dma_buf_put(dma_buf);
+err_dma_buf_export:
+	kfree(priv);
 exit:
 	return -1;
 }
