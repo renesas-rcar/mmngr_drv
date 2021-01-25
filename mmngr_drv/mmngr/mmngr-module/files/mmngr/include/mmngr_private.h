@@ -81,6 +81,9 @@ struct BM {
 	unsigned long	order;
 	unsigned long	end_bit;
 	unsigned long	*bits;
+#ifdef MMNGR_CO_DEBUGFS
+    atomic_t used;
+#endif
 };
 
 struct LOSSY_INFO {

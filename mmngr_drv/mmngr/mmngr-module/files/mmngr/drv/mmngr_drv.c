@@ -75,6 +75,12 @@
 #include <linux/of_reserved_mem.h>
 #include <linux/sizes.h>
 #include <linux/sys_soc.h>
+#ifdef MMNGR_CO_DEBUGFS
+#include <linux/debugfs.h>
+#ifdef MMNGR_CO_DEBUGFS_TEST
+#include <linux/random.h>
+#endif
+#endif
 
 #include "mmngr_public.h"
 #include "mmngr_private.h"
@@ -96,6 +102,9 @@ static bool			have_lossy_entries;
 static bool			is_sspbuf_valid;
 static u64			mm_sspbuf_addr;
 static u64			mm_sspbuf_size;
+#endif
+#ifdef MMNGR_CO_DEBUGFS
+static struct dentry *debugfs_root;
 #endif
 #ifdef IPMMU_MMU_SUPPORT
 static bool			ipmmu_common_init_done;
@@ -678,6 +687,9 @@ static int alloc_bm(struct BM *pb,
 	pb->order = order;
 	pb->top_phy_addr = top_phy_addr;
 	pb->end_bit = nbits;
+#ifdef MMNGR_CO_DEBUGFS
+    atomic_set(&pb->used, 0);
+#endif
 
 	return 0;
 }
@@ -725,6 +737,10 @@ static int mm_ioc_alloc_co(struct BM *pb, int __user *in, struct MM_PARAM *out)
 	out->hard_addr = (unsigned int)out->phy_addr;
 #endif
 	out->flag = tmp.flag;
+
+#ifdef MMNGR_CO_DEBUGFS
+    atomic_add(nbits << pb->order, &pb->used);
+#endif
 
 	return 0;
 }
@@ -805,6 +821,9 @@ static void mm_ioc_free_co(struct BM *pb, struct MM_PARAM *p)
 	spin_lock(&lock);
 	bitmap_clear(pb->bits, start_bit, nbits);
 	spin_unlock(&lock);
+#ifdef MMNGR_CO_DEBUGFS
+    atomic_sub(nbits << pb->order, &pb->used);
+#endif
 	memset(p, 0, sizeof(struct MM_PARAM));
 }
 
@@ -1696,6 +1715,136 @@ static struct miscdevice misc = {
 	.fops		= &fops,
 };
 
+#ifdef MMNGR_CO_DEBUGFS
+
+static inline void bitmap_next_clear_region(unsigned long *bitmap,
+					    unsigned int *rs, unsigned int *re,
+					    unsigned int end)
+{
+	*rs = find_next_zero_bit(bitmap, end, *rs);
+	*re = find_next_bit(bitmap, end, *rs + 1);
+}
+
+#define bitmap_for_each_clear_region(bitmap, rs, re, start, end)	     \
+	for ((rs) = (start),						     \
+	     bitmap_next_clear_region((bitmap), &(rs), &(re), (end));	     \
+	     (rs) < (re);						     \
+	     (rs) = (re) + 1,						     \
+	     bitmap_next_clear_region((bitmap), &(rs), &(re), (end)))
+
+#define DEFINE_SHOW_ATTRIBUTE(__name)					\
+static int __name ## _open(struct inode *inode, struct file *file)	\
+{									\
+	return single_open(file, __name ## _show, inode->i_private);	\
+}									\
+									\
+static const struct file_operations __name ## _fops = {			\
+	.owner		= THIS_MODULE,					\
+	.open		= __name ## _open,				\
+	.read		= seq_read,					\
+	.llseek		= seq_lseek,					\
+	.release	= single_release,				\
+}
+
+static int mm_co_info_show(struct seq_file *s, void *v)
+{
+    struct BM *pb = s->private;
+    seq_printf(s, "top_phy_addr=0x%llx\n", pb->top_phy_addr);
+    seq_printf(s, "order=%lu\n", pb->order);
+    seq_printf(s, "end_bit=%lu\n", pb->end_bit);
+    return 0;
+}
+
+DEFINE_SHOW_ATTRIBUTE(mm_co_info);
+
+static int mm_co_maxchunk_get(void *data, u64 *val)
+{
+    struct BM *pb = data;
+    unsigned int rs, re;
+    *val = 0;
+    spin_lock(&lock);
+    bitmap_for_each_clear_region(pb->bits, rs, re, 0, pb->end_bit) {
+        *val = max(*val, (u64)re - rs);
+    }
+    spin_unlock(&lock);
+    *val <<= pb->order;
+    return 0;
+}
+
+DEFINE_DEBUGFS_ATTRIBUTE(mm_co_maxchunk_fops, mm_co_maxchunk_get, NULL, "%llu\n");
+
+static int mm_co_bitmapx_show(struct seq_file *s, void *v)
+{
+    struct BM *pb = s->private;
+    seq_printf(s, "%*pb\n", pb->end_bit, pb->bits);
+    return 0;
+}
+
+DEFINE_SHOW_ATTRIBUTE(mm_co_bitmapx);
+
+static int mm_co_bitmapl_show(struct seq_file *s, void *v)
+{
+    struct BM *pb = s->private;
+    seq_printf(s, "%*pbl\n", pb->end_bit, pb->bits);
+    return 0;
+}
+
+DEFINE_SHOW_ATTRIBUTE(mm_co_bitmapl);
+
+#ifdef MMNGR_CO_DEBUGFS_TEST
+
+static int mm_co_test(void *data, u64 val)
+{
+    struct BM *pb = data;
+    int i;
+    unsigned int start;
+    bitmap_zero(pb->bits, pb->end_bit);
+    if (val == 0) {
+        return 0;
+    }
+    for (i = 0; i < pb->end_bit / 2; i++) {
+        bitmap_set(pb->bits, i * 2, 1);
+    }
+    start = get_random_int() % (pb->end_bit - val - 1);
+    start = find_next_zero_bit(pb->bits, pb->end_bit, start);
+    bitmap_clear(pb->bits, start, val);
+    return 0;
+}
+
+DEFINE_DEBUGFS_ATTRIBUTE(mm_co_test_fops, NULL, mm_co_test, "%llu\n");
+
+#endif
+
+static void mm_co_debugfs_add(struct dentry *root, const char *name, struct BM *pb)
+{
+    struct dentry *dir = debugfs_create_dir(name, root);
+
+    debugfs_create_file("info", S_IRUGO, dir, pb, &mm_co_info_fops);
+    debugfs_create_atomic_t("used", S_IRUGO, dir, &pb->used);
+    debugfs_create_file("maxchunk", S_IRUGO, dir, pb, &mm_co_maxchunk_fops);
+
+    debugfs_create_u32_array("bitmap32", S_IRUGO, dir, (u32*)pb->bits, DIV_ROUND_UP(pb->end_bit, BITS_PER_BYTE * sizeof(u32)));
+    debugfs_create_file("bitmapx", S_IRUGO, dir, pb, &mm_co_bitmapx_fops);
+    debugfs_create_file("bitmapl", S_IRUGO, dir, pb, &mm_co_bitmapl_fops);
+
+#ifdef MMNGR_CO_DEBUGFS_TEST
+    debugfs_create_file("test", S_IWUSR, dir, pb, &mm_co_test_fops);
+#endif
+}
+
+static void mm_co_debugfs_init(void)
+{
+    debugfs_root = debugfs_create_dir("mmngr", NULL);
+    mm_co_debugfs_add(debugfs_root, "co", &bm);
+}
+
+static void mm_co_debugfs_deinit(void)
+{
+    debugfs_remove_recursive(debugfs_root);
+}
+
+#endif
+
 static int mm_probe(struct platform_device *pdev)
 {
 	int			ret = 0;
@@ -1795,6 +1944,10 @@ static int mm_probe(struct platform_device *pdev)
 
 	spin_lock_init(&lock);
 
+#ifdef MMNGR_CO_DEBUGFS
+	mm_co_debugfs_init();
+#endif
+
 	return 0;
 
 err_alloc:
@@ -1805,6 +1958,10 @@ err_alloc:
 static int mm_remove(struct platform_device *pdev)
 {
 	u32 i;
+
+#ifdef MMNGR_CO_DEBUGFS
+    mm_co_debugfs_deinit();
+#endif
 
 	misc_deregister(&misc);
 
