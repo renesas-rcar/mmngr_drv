@@ -1227,8 +1227,8 @@ static int init_lossy_info(void)
 
 	have_lossy_entries = false;
 
-	mem = ioremap_nocache(MM_LOSSY_SHARED_MEM_ADDR,
-			MM_LOSSY_SHARED_MEM_SIZE);
+	mem = ioremap(MM_LOSSY_SHARED_MEM_ADDR,
+		      MM_LOSSY_SHARED_MEM_SIZE);
 	if (mem == NULL)
 		return -1;
 
@@ -1303,7 +1303,7 @@ static int __handle_registers(struct rcar_ipmmu *ipmmu, unsigned int handling)
 
 	if (handling == DO_IOREMAP) { /* ioremap */
 		/* IOREMAP registers in an IPMMU */
-		ipmmu->virt_addr = ioremap_nocache(base_addr, REG_SIZE);
+		ipmmu->virt_addr = ioremap(base_addr, REG_SIZE);
 		if (ipmmu->virt_addr == NULL)
 			ret = -1;
 
