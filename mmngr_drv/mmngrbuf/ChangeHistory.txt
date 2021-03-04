@@ -33,3 +33,8 @@ MMNGRBUF v1.2
 
 MMNGRBUF v1.3
 	1. Fix dmabuf refcount handling on mm_ioc_import_start() failure
+
+MMNGRBUF v1.4
+	1. Fix build errors in kernel version 5.4
+	2. Fix a race between close() and dmabuf_map_dma_buf() callbacks
+	3. Remove kernel dmabuf map/unmap hooks
