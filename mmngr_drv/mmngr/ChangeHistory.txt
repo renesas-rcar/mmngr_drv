@@ -104,3 +104,11 @@ MMNGR v1.7
 
 MMNGR v1.8
 	1.Remove cache snoop transaction for page table walk request
+
+MMNGR v1.9
+	1. Make sure IPMMU data for H3 Ver.1.x is set correctly
+	2. Don't register as BUS IOMMU if machine doesn't have IPMMU-VMSA
+	3. Add V3MSK board
+	4. Add kernelheap cached buffers support
+	5. Update DMA mapping header
+	6. Remove ioremap_nocache
