@@ -289,6 +289,16 @@ static int dmabuf_end_cpu_access(struct dma_buf *buf,
 	return 0;
 }
 
+static void *dmabuf_map(struct dma_buf *buf, unsigned long page)
+{
+	return NULL;
+}
+
+static void dmabuf_unmap(struct dma_buf *buf, unsigned long page, void *vaddr)
+{
+
+}
+
 static int dmabuf_mmap(struct dma_buf *buf, struct vm_area_struct *vma)
 {
 	pgprot_t prot = vm_get_page_prot(vma->vm_flags);
@@ -323,6 +333,8 @@ static const struct dma_buf_ops dmabuf_ops = {
 	.release = dmabuf_release,
 	.begin_cpu_access = dmabuf_begin_cpu_access,
 	.end_cpu_access = dmabuf_end_cpu_access,
+	.map = dmabuf_map,
+	.unmap = dmabuf_unmap,
 	.mmap = dmabuf_mmap,
 	.vmap = dmabuf_vmap,
 	.vunmap = dmabuf_vunmap,

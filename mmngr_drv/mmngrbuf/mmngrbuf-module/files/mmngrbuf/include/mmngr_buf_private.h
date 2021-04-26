@@ -118,6 +118,9 @@ static int dmabuf_begin_cpu_access(struct dma_buf *buf,
 				enum dma_data_direction direction);
 static int dmabuf_end_cpu_access(struct dma_buf *buf,
 				enum dma_data_direction direction);
+static void *dmabuf_map(struct dma_buf *buf, unsigned long page);
+static void dmabuf_unmap(struct dma_buf *buf, unsigned long page,
+			 void *vaddr);
 static int dmabuf_mmap(struct dma_buf *buf, struct vm_area_struct *vma);
 static void *dmabuf_vmap(struct dma_buf *buf);
 static void dmabuf_vunmap(struct dma_buf *buf, void *vaddr);
