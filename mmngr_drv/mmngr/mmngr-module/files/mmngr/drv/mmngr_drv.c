@@ -1208,8 +1208,10 @@ static int parse_reserved_mem_dt(struct device_node *np)
 				     &mm_lossybuf_addr,
 				     &mm_lossybuf_size);
 	if (ret) {
+#ifndef MMNGR_V3X
 		pr_warn("Failed to parse Lossy reserved area" \
 			"(linux,lossy_decompress) from DT\n");
+#endif
 		ret = 0; /* Let MMNGR support other features */
 	}
 	return ret;
