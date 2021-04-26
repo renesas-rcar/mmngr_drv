@@ -68,7 +68,7 @@
 #include <linux/cdev.h>
 #include <linux/platform_device.h>
 #include <linux/miscdevice.h>
-#include <linux/dma-map-ops.h>
+#include <linux/dma-contiguous.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_device.h>
