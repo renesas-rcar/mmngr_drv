@@ -156,7 +156,7 @@ static const struct soc_device_attribute r8a7795es2[]  = {
 
 /* M3 */
 static const struct soc_device_attribute r8a7796[]  = {
-	{ .soc_id = "r8a7796" },
+	{ .soc_id = "r8a77961" },
 	{}
 };
 
@@ -1595,6 +1595,10 @@ static const struct of_device_id ipmmu_of_match[] = {
 	},
 	{
 	  .compatible	= "renesas,ipmmu-mmu-r8a7796",
+	  .data = &r8a7796_ipmmu_data
+	},
+	{
+	  .compatible	= "renesas,ipmmu-mmu-r8a77961",
 	  .data = &r8a7796_ipmmu_data
 	},
 	{
