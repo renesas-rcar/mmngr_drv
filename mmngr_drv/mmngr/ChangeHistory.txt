@@ -116,3 +116,7 @@ MMNGR v1.9
 MMNGR v1.10
 	1. Update IPMMU(MMU) compatible for R8A77961 M3-W+
 	2. Add default coherent DMA mask
+
+MMNGR v1.11
+	1. Support customization of reserved memory region for multimedia in DT
+
