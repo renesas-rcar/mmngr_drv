@@ -1749,17 +1749,25 @@ static int mm_probe(struct platform_device *pdev)
 	if (p == NULL)
 		return -ENOMEM;
 
-	dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32));
-
 #ifdef IPMMU_MMU_SUPPORT
 	if (!rcar_gen3_ipmmu) {
 		pr_err("%s MMD ERROR\n", __func__);
 		return -ENOMEM;
 	}
 
-	dma_set_mask_and_coherent(dev, DMA_BIT_MASK(40));
+	ret = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(40));
+	if (ret)  {
+		pr_err("MMD mm_init ERROR unable to set DMA mode: %d.\n", ret);
+		return ret;
+	}
 	ipmmu_mmu_startup();
 	ipmmu_mmu_initialize();
+#else
+	ret = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32));
+	if (ret)  {
+		pr_err("MMD mm_init ERROR unable to set DMA mode: %d.\n", ret);
+		return ret;
+	}
 #endif
 
 	misc_register(&misc);
