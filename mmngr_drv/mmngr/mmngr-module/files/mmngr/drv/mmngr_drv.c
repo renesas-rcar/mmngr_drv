@@ -600,7 +600,11 @@ static int mm_ioc_alloc(struct device *mm_dev,
 	}
 	out->size = tmp.size;
 	out->kernel_virt_addr = (unsigned long)dma_alloc_coherent(mm_dev,
+#ifdef IPMMU_MMU_SUPPORT
+						max(out->size, PAGE_SIZE + 1),
+#else
 						out->size,
+#endif
 						(dma_addr_t *)&out->phy_addr,
 						GFP_KERNEL);
 	if (!out->kernel_virt_addr) {
