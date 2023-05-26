@@ -75,9 +75,13 @@
 #include <linux/of_reserved_mem.h>
 #include <linux/sizes.h>
 #include <linux/sys_soc.h>
+#include <linux/list.h>
 
 #include "mmngr_public.h"
 #include "mmngr_private.h"
+#include "mmngr_validate.h"
+
+DEFINE_MUTEX(mlock);
 
 static spinlock_t		lock;
 static struct BM		bm;
@@ -586,12 +590,30 @@ static struct rcar_ipmmu *r8a77990_disable_mmu_tlb[] = {
 
 #endif /* IPMMU_MMU_SUPPORT */
 
+#ifdef MMNGR_ADDRESS_VALIDATION
+struct mm_paddr_list {
+	u64 addr;
+	u64 size;
+
+	struct list_head list;
+};
+
+struct mm_list {
+	struct list_head head;
+};
+
+struct mm_list *mm_alloc_list;
+#endif
+
 static int mm_ioc_alloc(struct device *mm_dev,
 			int __user *in,
 			struct MM_PARAM *out)
 {
 	int		ret = 0;
 	struct MM_PARAM	tmp;
+#ifdef MMNGR_ADDRESS_VALIDATION
+	struct mm_paddr_list *new;
+#endif
 
 	if (copy_from_user(&tmp, (void __user *)in, sizeof(struct MM_PARAM))) {
 		pr_err("%s EFAULT\n", __func__);
@@ -623,6 +645,16 @@ static int mm_ioc_alloc(struct device *mm_dev,
 
 	out->flag = tmp.flag;
 
+#ifdef MMNGR_ADDRESS_VALIDATION
+	new = kmalloc(sizeof(*new), GFP_KERNEL);
+	new->addr = out->hard_addr;
+	new->size = out->size;
+
+	mutex_lock(&mlock);
+	list_add_tail(&new->list, &mm_alloc_list->head);
+	mutex_unlock(&mlock);
+#endif
+
 	return ret;
 }
 
@@ -630,6 +662,9 @@ static void mm_ioc_free(struct device *mm_dev, struct MM_PARAM *p)
 {
 	dma_free_coherent(mm_dev, p->size, (void *)p->kernel_virt_addr,
 			(dma_addr_t)p->phy_addr);
+#ifdef MMNGR_ADDRESS_VALIDATION
+	mm_list_entry_delete(p);
+#endif
 	memset(p, 0, sizeof(struct MM_PARAM));
 }
 
@@ -697,6 +732,9 @@ static int mm_ioc_alloc_co(struct BM *pb, int __user *in, struct MM_PARAM *out)
 	unsigned long	nbits;
 	unsigned long	start_bit;
 	struct MM_PARAM	tmp;
+#ifdef MMNGR_ADDRESS_VALIDATION
+	struct mm_paddr_list *new;
+#endif
 
 	if (copy_from_user(&tmp, in, sizeof(struct MM_PARAM))) {
 		pr_err("%s EFAULT\n", __func__);
@@ -729,6 +767,16 @@ static int mm_ioc_alloc_co(struct BM *pb, int __user *in, struct MM_PARAM *out)
 	out->hard_addr = (unsigned int)out->phy_addr;
 #endif
 	out->flag = tmp.flag;
+
+#ifdef MMNGR_ADDRESS_VALIDATION
+	new = kmalloc(sizeof(*new), GFP_KERNEL);
+	new->addr = out->hard_addr;
+	new->size = out->size;
+
+	mutex_lock(&mlock);
+	list_add_tail(&new->list, &mm_alloc_list->head);
+	mutex_unlock(&mlock);
+#endif
 
 	return 0;
 }
@@ -809,6 +857,11 @@ static void mm_ioc_free_co(struct BM *pb, struct MM_PARAM *p)
 	spin_lock(&lock);
 	bitmap_clear(pb->bits, start_bit, nbits);
 	spin_unlock(&lock);
+
+#ifdef MMNGR_ADDRESS_VALIDATION
+	mm_list_entry_delete(p);
+#endif
+
 	memset(p, 0, sizeof(struct MM_PARAM));
 }
 
@@ -1812,12 +1865,65 @@ static int mm_probe(struct platform_device *pdev)
 
 	spin_lock_init(&lock);
 
+#ifdef MMNGR_ADDRESS_VALIDATION
+	mm_alloc_list = kmalloc(sizeof(struct mm_list *), GFP_KERNEL);
+	INIT_LIST_HEAD(&mm_alloc_list->head);
+#endif
+
 	return 0;
 
 err_alloc:
 	misc_deregister(&misc);
 	return ret;
 }
+
+#ifdef MMNGR_ADDRESS_VALIDATION
+static void mm_list_entry_delete(struct MM_PARAM *p)
+{
+	struct mm_paddr_list *tmp;
+
+	mutex_lock(&mlock);
+	if (!list_empty(&mm_alloc_list->head)) {
+		list_for_each_entry(tmp, &mm_alloc_list->head, list) {
+			pr_debug("tmp->addr: %llx, p->hard_addr: %x && tmp->size: %llx, p->size: %lx\n",
+					  tmp->addr, p->hard_addr, tmp->size, p->size);
+			if (tmp->addr == p->hard_addr && tmp->size == p->size) {
+				pr_debug("List matched!!!\n");
+				list_del(&tmp->list);
+				kfree(tmp);
+				break;
+			}
+		}
+	}
+
+	mutex_unlock(&mlock);
+}
+
+bool mmngr_validate_phys_addr(u64 phys_addr, u64 size)
+{
+	struct mm_paddr_list *cur;
+
+	mutex_lock(&mlock);
+
+	if ((phys_addr + size) < phys_addr) {
+		pr_err("overflow has occured\n");
+		mutex_unlock(&mlock);
+		return false;
+	}
+
+	list_for_each_entry(cur, &mm_alloc_list->head, list) {
+		if (phys_addr >= cur->addr && phys_addr + size <= cur->addr + cur->size) {
+			mutex_unlock(&mlock);
+			return true;
+		}
+	}
+
+	mutex_unlock(&mlock);
+
+	return false;
+}
+EXPORT_SYMBOL_GPL(mmngr_validate_phys_addr);
+#endif
 
 static int mm_remove(struct platform_device *pdev)
 {
@@ -1851,6 +1957,10 @@ static int mm_remove(struct platform_device *pdev)
 			(dma_addr_t)mm_drvdata->reserve_phy_addr);
 
 	kfree(mm_drvdata);
+
+#ifdef MMNGR_ADDRESS_VALIDATION
+	kfree(mm_alloc_list);
+#endif
 
 	return 0;
 }

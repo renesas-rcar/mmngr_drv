@@ -204,6 +204,10 @@ static void mm_exit(void);
 
 static int validate_memory_map(void);
 
+#ifdef MMNGR_ADDRESS_VALIDATION
+static void mm_list_entry_delete(struct MM_PARAM *p);
+#endif
+
 #ifdef MMNGR_SALVATORX
 #ifdef IPMMU_MMU_SUPPORT
 	#define MM_OMXBUF_ADDR	(mm_kernel_reserve_addr)
