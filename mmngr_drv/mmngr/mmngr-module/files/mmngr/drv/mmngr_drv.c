@@ -1709,13 +1709,13 @@ static int mm_probe(struct platform_device *pdev)
 	ret = parse_reserved_mem_dt(np);
 	if (ret) {
 		pr_err("%s MMD ERROR\n", __func__);
-		return -1;
+		return ret;
 	}
 
 	ret = validate_memory_map();
 	if (ret) {
 		pr_err("%s MMD ERROR\n", __func__);
-		return -1;
+		return ret;
 	}
 #ifndef MMNGR_SSP_ENABLE
 	mm_omxbuf_size_probe = mm_kernel_reserve_size;
@@ -1725,7 +1725,7 @@ static int mm_probe(struct platform_device *pdev)
 	ret = alloc_bm(&bm, mm_omxbuf_addr, mm_omxbuf_size_probe, MM_CO_ORDER);
 	if (ret) {
 		pr_err("%s MMD ERROR\n", __func__);
-		return -1;
+		return ret;
 	}
 
 #ifdef MMNGR_SSP_ENABLE
@@ -1734,7 +1734,7 @@ static int mm_probe(struct platform_device *pdev)
 				MM_CO_ORDER);
 		if (ret) {
 			pr_err("%s MMD ERROR\n", __func__);
-			return -1;
+			return ret;
 		}
 	}
 #endif
@@ -1742,7 +1742,7 @@ static int mm_probe(struct platform_device *pdev)
 	ret = init_lossy_info();
 	if (ret) {
 		pr_err("MMD mm_init ERROR\n");
-		return -1;
+		return ret;
 	}
 
 	p = kzalloc(sizeof(struct MM_DRVDATA), GFP_KERNEL);
@@ -1754,7 +1754,7 @@ static int mm_probe(struct platform_device *pdev)
 #ifdef IPMMU_MMU_SUPPORT
 	if (!rcar_gen3_ipmmu) {
 		pr_err("%s MMD ERROR\n", __func__);
-		return -1;
+		return -ENOMEM;
 	}
 
 	dma_set_mask_and_coherent(dev, DMA_BIT_MASK(40));
@@ -1774,6 +1774,7 @@ static int mm_probe(struct platform_device *pdev)
 					GFP_KERNEL);
 	if (pkernel_virt_addr == NULL) {
 		pr_err("MMD mm_init ERROR\n");
+		ret = -ENOMEM;
 		goto err_alloc;
 	}
 
@@ -1799,7 +1800,7 @@ static int mm_probe(struct platform_device *pdev)
 
 err_alloc:
 	misc_deregister(&misc);
-	return -1;
+	return ret;
 }
 
 static int mm_remove(struct platform_device *pdev)
