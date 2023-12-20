@@ -910,7 +910,7 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	int		ercd;
 	int		ret;
 	struct MM_PARAM	*p = file->private_data;
-	struct MM_CACHE_PARAM *cachep;
+	struct MM_CACHE_PARAM cachep;
 	struct device	*mm_dev;
 
 	mm_dev = mm_drvdata->mm_dev;
@@ -963,14 +963,14 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		}
 		break;
 	case MM_IOC_FLUSH:
-		cachep = (struct MM_CACHE_PARAM *)arg;
-		dma_sync_single_for_device(mm_dev, p->hard_addr + cachep->offset,
-					   cachep->len, DMA_FROM_DEVICE);
+		copy_from_user(&cachep, arg, sizeof(struct MM_CACHE_PARAM));
+		dma_sync_single_for_device(mm_dev, p->hard_addr + cachep.offset,
+					   cachep.len, DMA_FROM_DEVICE);
 		break;
 	case MM_IOC_INVAL:
-		cachep = (struct MM_CACHE_PARAM *)arg;
-		dma_sync_single_for_cpu(mm_dev, p->hard_addr + cachep->offset,
-					cachep->len, DMA_TO_DEVICE);
+		copy_from_user(&cachep, arg, sizeof(struct MM_CACHE_PARAM));
+		dma_sync_single_for_cpu(mm_dev, p->hard_addr + cachep.offset,
+					cachep.len, DMA_TO_DEVICE);
 		break;
 	default:
 		pr_err("%s MMD CMD EFAULT\n", __func__);
