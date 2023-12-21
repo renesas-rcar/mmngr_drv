@@ -307,7 +307,9 @@ static int dmabuf_mmap(struct dma_buf *buf, struct vm_area_struct *vma)
 
 static void *dmabuf_vmap(struct dma_buf *buf)
 {
-	return NULL;
+	struct MM_BUF_PRIVATE *priv = buf->priv;
+
+	return phys_to_virt(priv->hard_addr);
 }
 
 static void dmabuf_vunmap(struct dma_buf *buf, void *vaddr)
