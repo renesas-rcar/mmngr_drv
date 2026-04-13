@@ -119,8 +119,8 @@ static int dmabuf_begin_cpu_access(struct dma_buf *buf,
 static int dmabuf_end_cpu_access(struct dma_buf *buf,
 				enum dma_data_direction direction);
 static int dmabuf_mmap(struct dma_buf *buf, struct vm_area_struct *vma);
-static void *dmabuf_vmap(struct dma_buf *buf);
-static void dmabuf_vunmap(struct dma_buf *buf, void *vaddr);
+static int dmabuf_vmap(struct dma_buf *buf, struct iosys_map *map);
+static void dmabuf_vunmap(struct dma_buf *buf, struct iosys_map *map);
 static int mm_probe(struct platform_device *pdev);
 static int mm_remove(struct platform_device *pdev);
 static int mm_init(void);

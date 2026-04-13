@@ -305,12 +305,13 @@ static int dmabuf_mmap(struct dma_buf *buf, struct vm_area_struct *vma)
 	return 0;
 }
 
-static void *dmabuf_vmap(struct dma_buf *buf)
+
+static int dmabuf_vmap(struct dma_buf *buf, struct iosys_map *map)
 {
-	return NULL;
+	return -EINVAL;
 }
 
-static void dmabuf_vunmap(struct dma_buf *buf, void *vaddr)
+static void dmabuf_vunmap(struct dma_buf *buf, struct iosys_map *map)
 {
 
 }
