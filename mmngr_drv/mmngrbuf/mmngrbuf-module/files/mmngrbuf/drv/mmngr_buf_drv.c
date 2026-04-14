@@ -71,6 +71,7 @@
 #include "mmngr_buf_private.h"
 
 static struct MM_BUF_DRVDATA	*mm_buf_drvdata;
+static const struct dma_buf_ops dmabuf_ops;
 
 static int open(struct inode *inode, struct file *file)
 {
@@ -162,52 +163,124 @@ exit:
 #ifdef CONFIG_COMPAT
 static long compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-	int ret;
-	struct MM_BUF_PARAM __user *tmp;
+	struct MM_BUF_PRIVATE *priv = file->private_data;
 	struct COMPAT_MM_BUF_PARAM tmp32;
-	struct COMPAT_MM_BUF_PARAM __user *argp = (void __user *)arg;
+	struct COMPAT_MM_BUF_PARAM __user *argp = compat_ptr(arg);
+	int ret = 0;
 
-	tmp = compat_alloc_user_space(sizeof(*tmp));
-
-	/* Convert 32-bit data to 64-bit data */
-	if (copy_from_user(&tmp32, argp, sizeof(tmp32))) {
-		ret = -EFAULT;
-		return ret;
+	if (cmd != COMPAT_MM_IOC_IMPORT_END) {
+		if (copy_from_user(&tmp32, argp, sizeof(tmp32)))
+			return -EFAULT;
 	}
-
-	if (!access_ok(tmp, sizeof(*tmp))
-	    || __put_user(tmp32.size, &tmp->size)
-	    || __put_user(tmp32.hard_addr, &tmp->hard_addr)
-	    || __put_user(tmp32.buf, &tmp->buf))
-		return -EFAULT;
 
 	switch (cmd) {
-	case COMPAT_MM_IOC_EXPORT_START:
-		cmd = MM_IOC_EXPORT_START;
+	case COMPAT_MM_IOC_EXPORT_START: {
+		struct MM_BUF_PRIVATE *buf_priv;
+		struct dma_buf *dma_buf;
+		DEFINE_DMA_BUF_EXPORT_INFO(exp_info);
+
+		buf_priv = kzalloc(sizeof(*buf_priv), GFP_KERNEL);
+		if (!buf_priv)
+			return -ENOMEM;
+
+		exp_info.priv = buf_priv;
+		exp_info.ops = &dmabuf_ops;
+		exp_info.size = tmp32.size;
+		exp_info.flags = O_RDWR;
+
+		dma_buf = dma_buf_export(&exp_info);
+		if (IS_ERR(dma_buf)) {
+			ret = PTR_ERR(dma_buf);
+			goto err_export;
+		}
+
+		buf_priv->dma_buf = dma_buf;
+
+		tmp32.buf = dma_buf_fd(dma_buf, 0);
+		if (tmp32.buf < 0) {
+			ret = tmp32.buf;
+			goto err_dma_buf_fd;
+		}
+
+		buf_priv->size = tmp32.size;
+		buf_priv->hard_addr = tmp32.hard_addr;
+		buf_priv->buf = tmp32.buf;
+		priv->buf = tmp32.buf;
+
+		if (copy_to_user(argp, &tmp32, sizeof(tmp32))) {
+			ret = -EFAULT;
+			goto err_dma_buf_fd;
+		}
+
 		break;
-	case COMPAT_MM_IOC_EXPORT_END:
-		cmd = MM_IOC_EXPORT_END;
-		break;
-	case COMPAT_MM_IOC_IMPORT_START:
-		cmd = MM_IOC_IMPORT_START;
-		break;
-	case COMPAT_MM_IOC_IMPORT_END:
-		cmd = MM_IOC_IMPORT_END;
-		break;
-	default:
+
+err_dma_buf_fd:
+		dma_buf_put(dma_buf);
+err_export:
+		kfree(buf_priv);
 		break;
 	}
-
-	ret = ioctl(file, cmd, (unsigned long)tmp);
-
-	if (cmd != MM_IOC_IMPORT_END) {
-		/* Convert 64-bit data to 32-bit data */
-		if (__get_user(tmp32.size, &tmp->size)
-		    || __get_user(tmp32.hard_addr, &tmp->hard_addr)
-		    || __get_user(tmp32.buf, &tmp->buf))
-			return -EFAULT;
+	case COMPAT_MM_IOC_EXPORT_END:
+		tmp32.buf = priv->buf;
 		if (copy_to_user(argp, &tmp32, sizeof(tmp32)))
 			ret = -EFAULT;
+		break;
+
+	case COMPAT_MM_IOC_IMPORT_START:
+		priv->dma_buf = dma_buf_get(tmp32.buf);
+		if (IS_ERR(priv->dma_buf)) {
+			ret = PTR_ERR(priv->dma_buf);
+			priv->dma_buf = NULL;
+			break;
+		}
+
+		priv->attach = dma_buf_attach(priv->dma_buf,
+					mm_buf_drvdata->mm_buf_dev);
+		if (IS_ERR(priv->attach)) {
+			ret = PTR_ERR(priv->attach);
+			priv->attach = NULL;
+			goto err_put;
+		}
+
+		priv->sgt = dma_buf_map_attachment(priv->attach,
+						DMA_BIDIRECTIONAL);
+		if (IS_ERR_OR_NULL(priv->sgt)) {
+			ret = priv->sgt ? PTR_ERR(priv->sgt) : -ENOMEM;
+			priv->sgt = NULL;
+			goto err_detach;
+		}
+
+		tmp32.hard_addr = sg_dma_address(priv->sgt->sgl);
+		tmp32.size = sg_dma_len(priv->sgt->sgl);
+		priv->hard_addr = tmp32.hard_addr;
+		priv->size = tmp32.size;
+
+		if (copy_to_user(argp, &tmp32, sizeof(tmp32))) {
+			ret = -EFAULT;
+			goto err_unmap;
+		}
+
+		break;
+
+err_unmap:
+		dma_buf_unmap_attachment(priv->attach, priv->sgt,
+					DMA_BIDIRECTIONAL);
+		priv->sgt = NULL;
+err_detach:
+		dma_buf_detach(priv->dma_buf, priv->attach);
+		priv->attach = NULL;
+err_put:
+		dma_buf_put(priv->dma_buf);
+		priv->dma_buf = NULL;
+		break;
+
+	case COMPAT_MM_IOC_IMPORT_END:
+		ret = mm_ioc_import_end(priv);
+		break;
+
+	default:
+		ret = -EINVAL;
+		break;
 	}
 
 	return ret;
@@ -498,4 +571,5 @@ static void mm_exit(void)
 module_init(mm_init);
 module_exit(mm_exit);
 
+MODULE_IMPORT_NS(DMA_BUF);
 MODULE_LICENSE("Dual MIT/GPL");
