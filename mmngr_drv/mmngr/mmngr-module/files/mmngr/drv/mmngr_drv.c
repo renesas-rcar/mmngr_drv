@@ -1046,87 +1046,75 @@ exit:
 }
 
 #ifdef CONFIG_COMPAT
-static long compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+static long compat_ioctl(struct file *file,
+                         unsigned int cmd,
+                         unsigned long arg)
 {
-	int ret;
-	struct MM_PARAM	__user *tmp;
-	struct COMPAT_MM_PARAM tmp32;
-	struct COMPAT_MM_PARAM __user *argp = (void __user *)arg;
+    struct MM_PARAM *p = file->private_data;
+    struct COMPAT_MM_PARAM tmp32;
+    void __user *argp = compat_ptr(arg);
+    struct device *mm_dev = mm_drvdata->mm_dev;
+    int ret = 0;
 
-	tmp = compat_alloc_user_space(sizeof(*tmp));
+    if (cmd != COMPAT_MM_IOC_FREE &&
+        cmd != COMPAT_MM_IOC_FREE_CO) {
+        if (copy_from_user(&tmp32, argp, sizeof(tmp32)))
+            return -EFAULT;
+    }
 
-	/* Convert 32-bit data to 64-bit data */
-	if (cmd != COMPAT_MM_IOC_FREE_CO && cmd != COMPAT_MM_IOC_FREE) {
-		/* Convert 32-bit data to 64-bit data */
-		if (copy_from_user(&tmp32, argp, sizeof(tmp32))) {
-			ret = -EFAULT;
-			return ret;
-		}
-	}
+    switch (cmd) {
+    case COMPAT_MM_IOC_ALLOC:
+        p->size = tmp32.size;
+        p->flag = tmp32.flag;
+        ret = mm_ioc_alloc(mm_dev, (int __user *)argp, p);
+        break;
 
-	switch (cmd) {
-	case COMPAT_MM_IOC_ALLOC:
-		cmd = MM_IOC_ALLOC;
-		if (!access_ok(tmp, sizeof(*tmp))
-		    || __put_user(tmp32.size, &tmp->size)
-		    || __put_user(tmp32.flag, &tmp->flag))
-			return -EFAULT;
-		break;
-	case COMPAT_MM_IOC_SET:
-		cmd = MM_IOC_SET;
-		if (!access_ok(tmp, sizeof(*tmp))
-		    || __put_user(tmp32.user_virt_addr, &tmp->user_virt_addr))
-			return -EFAULT;
-		break;
-	case COMPAT_MM_IOC_ALLOC_CO:
-		cmd = MM_IOC_ALLOC_CO;
-		if (!access_ok(tmp, sizeof(*tmp))
-		    || __put_user(tmp32.size, &tmp->size)
-		    || __put_user(tmp32.flag, &tmp->flag))
-			return -EFAULT;
-		break;
-	case COMPAT_MM_IOC_SHARE:
-		cmd = MM_IOC_SHARE;
-		if (!access_ok(tmp, sizeof(*tmp))
-		    || __put_user(tmp32.size, &tmp->size)
-		    || __put_user(tmp32.phy_addr, &tmp->phy_addr))
-			return -EFAULT;
-		break;
-	case COMPAT_MM_IOC_GET:
-		cmd = MM_IOC_GET;
-		break;
-	case COMPAT_MM_IOC_FREE_CO:
-		cmd = MM_IOC_FREE_CO;
-		break;
-	case COMPAT_MM_IOC_FREE:
-		cmd = MM_IOC_FREE;
-		break;
+    case COMPAT_MM_IOC_SET:
+        p->user_virt_addr = tmp32.user_virt_addr;
+        ret = mm_ioc_set((int __user *)argp, p);
+        break;
 
-	default:
-		break;
-	}
+    case COMPAT_MM_IOC_ALLOC_CO:
+        p->size = tmp32.size;
+        p->flag = tmp32.flag;
+        ret = mm_ioc_alloc_co_select((int __user *)argp, p);
+        break;
 
-	ret = ioctl(file, cmd, (unsigned long)tmp);
-	if (ret)
-		return ret;
+    case COMPAT_MM_IOC_SHARE:
+        p->size     = tmp32.size;
+        p->phy_addr = tmp32.phy_addr;
+        ret = mm_ioc_share((int __user *)argp, p);
+        break;
 
-	if (cmd == MM_IOC_GET) {
-		/* Convert 64-bit data to 32-bit data */
-		if (__get_user(tmp32.size, &tmp->size)
-		    || __get_user(tmp32.phy_addr, &tmp->phy_addr)
-		    || __get_user(tmp32.hard_addr, &tmp->hard_addr)
-		    || __get_user(tmp32.user_virt_addr,
-					&tmp->user_virt_addr)
-		    || __get_user(tmp32.kernel_virt_addr,
-					&tmp->kernel_virt_addr)
-		    || __get_user(tmp32.flag, &tmp->flag))
-			return -EFAULT;
+    case COMPAT_MM_IOC_GET:
+        ret = mm_ioc_get(p, (int __user *)argp);
+        if (!ret) {
+            tmp32.size             = p->size;
+            tmp32.phy_addr         = p->phy_addr;
+            tmp32.hard_addr        = p->hard_addr;
+            tmp32.user_virt_addr   = p->user_virt_addr;
+            tmp32.kernel_virt_addr = p->kernel_virt_addr;
+            tmp32.flag             = p->flag;
 
-		if (copy_to_user(argp, &tmp32, sizeof(tmp32)))
-			ret = -EFAULT;
-	}
+            if (copy_to_user(argp, &tmp32, sizeof(tmp32)))
+                ret = -EFAULT;
+        }
+        break;
 
-	return ret;
+    case COMPAT_MM_IOC_FREE:
+        mm_ioc_free(mm_dev, p);
+        break;
+
+    case COMPAT_MM_IOC_FREE_CO:
+        mm_ioc_free_co_select(p);
+        break;
+
+    default:
+        ret = -EINVAL;
+        break;
+    }
+
+    return ret;
 }
 #endif
 
